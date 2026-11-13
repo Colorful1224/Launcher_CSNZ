@@ -7,15 +7,11 @@
 #include <VGUI/IPanel.h>
 #include "DediCsv.h"
 #include "ChattingManager.h"
-#include <IFileSystem.h>
 
 #define MAX_ZIP_SIZE	(1024 * 1024 * 16 )
 #include "XZip.h"
 
 #include <vector>
-#include <string>
-#include <unordered_map>
-#include "sys.h"
 
 HMODULE g_hEngineModule;
 DWORD g_dwEngineBase;
@@ -30,95 +26,82 @@ DWORD g_dwMpSize;
 #define DEFAULT_IP "127.0.0.1"
 #define DEFAULT_PORT "30002"
 
-#define SOCKETMANAGER_SIG_CSNZ "\x55\x8B\xEC\x6A\x00\x68\x00\x00\x00\x00\x64\xA1\x00\x00\x00\x00\x50\x51\x53\x56\x57\xA1\x00\x00\x00\x00\x33\xC5\x50\x8D\x45\x00\x64\xA3\x00\x00\x00\x00\x8B\xD9\x89\x5D\x00\x8A\x45"
-#define SOCKETMANAGER_MASK_CSNZ "xxxx?x????xx????xxxxxx????xxxxx?xx????xxxx?xx"
-
-#define SERVERCONNECT_SIG_CSNZ "\xE8\x00\x00\x00\x00\x85\xC0\x75\x00\x46"
-#define SERVERCONNECT_MASK_CSNZ "x????xxx?x"
-
-#define PACKET_METADATA_PARSE_SIG_CSNZ "\x55\x8B\xEC\x6A\x00\x68\x00\x00\x00\x00\x64\xA1\x00\x00\x00\x00\x50\x81\xEC\x00\x00\x00\x00\xA1\x00\x00\x00\x00\x33\xC5\x89\x45\x00\x56\x57\x50\x8D\x45\x00\x64\xA3\x00\x00\x00\x00\x8B\xF1\x89\xB5\x00\x00\x00\x00\x8B\x45\x00\x89\x85"
-#define PACKET_METADATA_PARSE_MASK_CSNZ "xxxx?x????xx????xxx????x????xxxx?xxxxx?xx????xxxx????xx?xx"
-
-#define PACKET_HACK_PARSE_SIG_CSNZ "\x55\x8B\xEC\x6A\x00\x68\x00\x00\x00\x00\x64\xA1\x00\x00\x00\x00\x50\x83\xEC\x00\x57\xA1\x00\x00\x00\x00\x33\xC5\x50\x8D\x45\x00\x64\xA3\x00\x00\x00\x00\x8B\xF9\x8B\x45\x00\x89\x45"
-#define PACKET_HACK_PARSE_MASK_CSNZ "xxxx?x????xx????xxx?xx????xxxxx?xx????xxxx?xx"
-
-#define PACKET_HACK_SEND_SIG_CSNZ "\xE8\x00\x00\x00\x00\xE8\x00\x00\x00\x00\xE8\x00\x00\x00\x00\xE8\x00\x00\x00\x00\x83\x3D\x00\x00\x00\x00\x00\x74\x00\xE8\x00\x00\x00\x00\xE8"
-#define PACKET_HACK_SEND_MASK_CSNZ "x????x????x????x????xx????xx?x????x"
-
-#define BOT_MANAGER_PTR_SIG_CSNZ "\xA3\x00\x00\x00\x00\xC7\x45\x00\x00\x00\x00\x00\xFF\x15\x00\x00\x00\x00\x83\xC4"
-#define BOT_MANAGER_PTR_MASK_CSNZ "x????xx?????xx????xx"
-
-#define CSOMAINPANEL_PTR_SIG_CSNZ "\x8B\x0D\x00\x00\x00\x00\x6A\x00\x00\x00\xFF\x90\x00\x00\x00\x00\x8B\x0D\x00\x00\x00\x00\xFF\x75"
-#define CSOMAINPANEL_PTR_MASK_CSNZ "xx????x???xx????xx????xx"
-
-#define CALL_PANEL_FINDCHILDBYNAME_SIG_CSNZ "\xE8\x00\x00\x00\x00\x85\xC0\x74\x00\x83\x7D"
-#define CALL_PANEL_FINDCHILDBYNAME_MASK_CSNZ "x????xxx?xx"
-
-#define NGCLIENT_INIT_SIG_CSNZ "\xE8\x00\x00\x00\x00\x83\xC4\x00\x85\xC0\x74\x00\xE8\x00\x00\x00\x00\xE8\x00\x00\x00\x00\x84\xC0"
-#define NGCLIENT_INIT_MASK_CSNZ "x????xx?xxx?x????x????xx"
-
-#define NGCLIENT_QUIT_SIG_CSNZ "\x57\xE8\x00\x00\x00\x00\xFF\x15"
-#define NGCLIENT_QUIT_MASK_CSNZ "xx????xx"
-
-#define HOLEPUNCH_SETSERVERINFO_SIG_CSNZ "\x55\x8B\xEC\xB8\x00\x00\x00\x00\x66\xA3"
-#define HOLEPUNCH_SETSERVERINFO_MASK_CSNZ "xxxx????xx"
-
-#define CREATESTRINGTABLE_SIG_CSNZ "\x55\x8B\xEC\x53\x56\x8B\xF1\xC7\x46"
-#define CREATESTRINGTABLE_MASK_CSNZ "xxxxxxxxx"
-
-#define LOADJSON_SIG_CSNZ "\x55\x8B\xEC\x8B\x0D\x00\x00\x00\x00\x53\x56\x8B\x75\x00\x8B\x01\x57\x8B\x50\x00\x8B\x45\x00\x83\x78\x00\x00\x76\x00\x8B\x00\x6A\x00\x68\x00\x00\x00\x00\x50\xFF\xD2\x8B\x0D\x00\x00\x00\x00\x8B\xD8\x53\x8B\x11\xFF\x52\x00\x8B\xF8\x85\xFF\x74"
-#define LOADJSON_MASK_CSNZ "xxxxx????xxxx?xxxxx?xx?xx??x?xxx?x????xxxxx????xxxxxxx?xxxxx"
-
-#define LOGTOERRORLOG_SIG_CSNZ "\x53\x8B\xDC\x83\xEC\x00\x83\xE4\x00\x83\xC4\x00\x55\x8B\x6B\x00\x89\x6C\x24\x00\x8B\xEC\x83\xEC\x00\x56\x57\x8B\x7B\x00\x85\xFF"
-#define LOGTOERRORLOG_MASK_CSNZ "xxxxx?xx?xx?xxx?xxx?xxxx?xxxx?xx"
-
-#define READPACKET_SIG_CSNZ "\xE8\x00\x00\x00\x00\x8B\xF0\x83\xFE\x00\x77"
-#define READPACKET_MASK_CSNZ "x????xxxx?x"
-
-#define GETSSLPROTOCOLNAME_SIG_CSNZ "\xE8\x00\x00\x00\x00\xB9\x00\x00\x00\x00\x8A\x10"
-#define GETSSLPROTOCOLNAME_MASK_CSNZ "x????x????xx"
-
-#define SOCKETCONSTRUCTOR_SIG_CSNZ "\xE8\x00\x00\x00\x00\xEB\x00\x33\xC0\xFF\x75\x00\xC7\x45"
-#define SOCKETCONSTRUCTOR_MASK_CSNZ "x????x?xxxx?xx"
-
-#define EVP_CIPHER_CTX_NEW_SIG_CSNZ "\xE8\x00\x00\x00\x00\x8B\xF8\x89\xBE"
-#define EVP_CIPHER_CTX_NEW_MASK_CSNZ "x????xxxx"
-
-#define FPS_PATCH_SIG_CSNZ "\x9F\xF6\xC4\x00\x7A\x00\xF2\x0F\x10\x0D\x00\x00\x00\x00\x0F\x5A\xC2\xF2\x0F\x5D\xC8\x66\x0F\x5A\xD1\x83\xFA\x00\x7E\x00\xF3\x0F\x10\x05\x00\x00\x00\x00\xF3\x0F\x5F\xC2\x0F\x28\xD0\x83\x3D\x00\x00\x00\x00\x00\x75\x00\x0F\x28"
-#define FPS_PATCH_MASK_CSNZ "xxx?x?xxxx????xxxxxxxxxxxxx?x?xxxx????xxxxxxxxx????xx?xx"
-
+// Keep the wire build date of this installation (24.12.23), independent of
+// the date on which the replacement launcher is compiled.
+#define LEGACY_CLIENT_TIMESTAMP 0x6588118B
 #define GETPECOMPILATIONTIME_SIG_CSNZ "\x55\x8B\xEC\x83\xEC\x00\x83\x3D\x00\x00\x00\x00\x00\x74\x00\x33\xC0"
 #define GETPECOMPILATIONTIME_MASK_CSNZ "xxxxx?xx????xx?xx"
 
-#define CONNECTSERVER_SIG_CSNZ "\x55\x8B\xEC\x81\xEC\x00\x00\x00\x00\xA1\x00\x00\x00\x00\x33\xC5\x89\x45\x00\x83\x3D\x00\x00\x00\x00\x00\x53\x56\x8B\xD9"
-#define CONNECTSERVER_MASK_CSNZ "xxxxx????x????xxxx?xx????xxxxx"
+#define SOCKETMANAGER_SIG_CSNZ23 "\xE8\x00\x00\x00\x00\xEB\x02\x33\xC0\xA3\x00\x00\x00\x00\xB9\x00\x00\x00\x00"
+#define SOCKETMANAGER_MASK_CSNZ23 "x????xxxxx????x????"
 
-#define CMAPENTITYMANAGER_SIG_CSNZ "\x55\x8B\xEC\x51\xA1\x00\x00\x00\x00\x85\xC0\x75\x00\x6A\x00\xE8\x00\x00\x00\x00\x83\xC4\x00\x89\x45\x00\x85\xC0\x74\x00\x00\x00\x00\x00\x00\x00\x66\xC7\x40"
-#define CMAPENTITYMANAGER_MASK_CSNZ "xxxxx????xxx?x?x????xx?xx?xxx???????xxx"
+#define SERVERCONNECT_SIG_CSNZ2019 "\x55\x8B\xEC\x6A\xFF\x68\x00\x00\x00\x00\x64\xA1\x00\x00\x00\x00\x50\x81\xEC\x00\x00\x00\x00\xA1\x00\x00\x00\x00\x33\xC5\x89\x45\xF0\x53\x56\x57\x50\x8D\x45\xF4\x64\xA3\x00\x00\x00\x00\x8B\xF1\x8B\x4E\x04\x85\xC9\x74\x25\x8B\x01\x6A\x01\xFF\x10\x68\x00\x00\x00\x00"
+#define SERVERCONNECT_MASK_CSNZ2019 "xxxxxx????xx????xxx????x????xxxxxxxxxxxxxx????xxxxxxxxxxxxxxxx????"
 
-#define PACKET_LOGIN_SEND_SIG_CSNZ "\x55\x8B\xEC\x6A\x00\x68\x00\x00\x00\x00\x64\xA1\x00\x00\x00\x00\x50\x83\xEC\x00\xA1\x00\x00\x00\x00\x33\xC5\x89\x45\x00\x56\x57\x50\x8D\x45\x00\x64\xA3\x00\x00\x00\x00\x8B\x45\x00\x8D\x4D\x00\x8B\x75"
-#define PACKET_LOGIN_SEND_MASK_CSNZ "xxxx?x????xx????xxx?x????xxxx?xxxxx?xx????xx?xx?xx"
+#define PARSE_W_UDP_SIG_CSNZ "\x55\x8B\xEC\x8B\x4D\x08\x8B\x41\x04"
+#define PARSE_W_UDP_MASK_CSNZ "xxxxxxxxx"
 
-#define VOXEL_TAB_SIG_CSNZ "\x83\xFE\x00\x0F\x8E\x00\x00\x00\x00\x33\xC9"
-#define VOXEL_TAB_MASK_CSNZ "xx?xx????xx"
+#define PACKET_METADATA_PARSE_SIG_CSNZ "\x55\x8B\xEC\x6A\xFF\x68\x00\x00\x00\x00\x64\xA1\x00\x00\x00\x00\x50\x81\xEC\x00\x00\x00\x00\xA1\x00\x00\x00\x00\x33\xC5\x89\x45\xF0\x56\x57\x50\x8D\x45\xF4\x64\xA3\x00\x00\x00\x00\x8B\xF9\x89\xBD\x00\x00\x00\x00\x8B\x45\x08\x33\xF6\x89\xB5\x00\x00\x00\x00\x89\x85\x00\x00\x00\x00\x8B\x45\x0C\xC7\x85\x00\x00\x00\x00\x00\x00\x00\x00\x89\xB5\x00\x00\x00\x00\x89\x85\x00\x00\x00\x00\x6A\x01\x8D\x85\x00\x00\x00\x00\x89\x75\xFC\x50\x8D\x8D\x00\x00\x00\x00\xE8\x00\x00\x00\x00\x0F\xB6\x95\x00\x00\x00\x00"
+#define PACKET_METADATA_PARSE_MASK_CSNZ "xxxxxx????xx????xxx????x????xxxxxxxxxxxxx????xxxx????xxxxxxx????xx????xxxxx????????xx????xx????xxxx????xxxxxx????x????xxx????"
+#define PACKET_QUEST_PARSE_SIG_CSNZ "\x55\x8B\xEC\x6A\xFF\x68\x00\x00\x00\x00\x64\xA1\x00\x00\x00\x00\x50\x83\xEC\x2C\x53\x56\x57\xA1\x00\x00\x00\x00\x33\xC5\x50\x8D\x45\xF4\x64\xA3\x00\x00\x00\x00\x8B\xF9\x8B\x45\x08"
+#define PACKET_QUEST_PARSE_MASK_CSNZ "xxxxxx????xx????xxxxxxxx????xxxxxxxx????xxxxx"
+#define PACKET_UMSG_PARSE_SIG_CSNZ "\x55\x8B\xEC\x6A\x00\x68\x00\x00\x00\x00\x64\xA1\x00\x00\x00\x00\x50\xB8\x00\x00\x00\x00\xE8\x00\x00\x00\x00\xA1\x00\x00\x00\x00\x33\xC5\x89\x45\x00\x56\x57\x50\x8D\x45\x00\x64\xA3\x00\x00\x00\x00\x8B\xF1\x89\xB5"
+#define PACKET_UMSG_PARSE_MASK_CSNZ "xxxx?x????xx????xx????x????x????xxxx?xxxxx?xx????xxxx"
+#define PACKET_ALARM_PARSE_SIG_CSNZ "\x55\x8B\xEC\x6A\x00\x68\x00\x00\x00\x00\x64\xA1\x00\x00\x00\x00\x50\x81\xEC\x00\x00\x00\x00\xA1\x00\x00\x00\x00\x33\xC5\x89\x45\x00\x56\x57\x50\x8D\x45\x00\x64\xA3\x00\x00\x00\x00\x8B\xF9\x89\xBD\x00\x00\x00\x00\x8B\x45\x00\xC7\x85\x00\x00\x00\x00\x00\x00\x00\x00\x89\x85\x00\x00\x00\x00\x8B\x45\x00\xC7\x85\x00\x00\x00\x00\x00\x00\x00\x00\xC7\x85\x00\x00\x00\x00\x00\x00\x00\x00\x89\x85\x00\x00\x00\x00\x6A\x00\x8D\x85\x00\x00\x00\x00\xC7\x45\x00\x00\x00\x00\x00\x50\x8D\x8D\x00\x00\x00\x00\xE8\x00\x00\x00\x00\x0F\xB6\x85\x00\x00\x00\x00\x83\xF8"
+#define PACKET_ALARM_PARSE_MASK_CSNZ "xxxx?x????xx????xxx????x????xxxx?xxxxx?xx????xxxx????xx?xx????????xx????xx?xx????????xx????????xx????x?xx????xx?????xxx????x????xxx????xx"
+#define PACKET_ITEM_PARSE_SIG_CSNZ "\x55\x8B\xEC\x6A\xFF\x68\x00\x00\x00\x00\x64\xA1\x00\x00\x00\x00\x50\x81\xEC\x00\x00\x00\x00\xA1\x00\x00\x00\x00\x33\xC5\x89\x45\xF0\x56\x57\x50\x8D\x45\xF4\x64\xA3\x00\x00\x00\x00\x8B\xF1\x8B\x45\x08\xC7\x85\x00\x00\x00\x00\x00\x00\x00\x00"
+#define PACKET_ITEM_PARSE_MASK_CSNZ "xxxxxx????xx????xxx????x????xxxxxxxxxxxxx????xxxxxxx????????"
 
-float* g_pFreezeTime;
+#define PACKET_HOST_PTR_SIG_CSNZ "\xA1\x00\x00\x00\x00\x6A\x18\x89\x81\x00\x00\x00\x00\xE8\x00\x00\x00\x00\x83\xC4\x04\x89\x45\xF0\xC7\x45\x00\x00\x00\x00\x00\x85\xC0\x74\x09\x8B\xC8\xE8\x00\x00\x00\x00\xEB\x02\x33\xC0\x56\x8B\xC8\xC7\x45\x00\x00\x00\x00\x00\xA3\x00\x00\x00\x00\xE8\x00\x00\x00\x00"
+#define PACKET_HOST_PTR_MASK_CSNZ "x????xxxx????x????xxxxxxxx?????xxxxxxx????xxxxxxxxx?????x????x????"
+
+#define BOT_MANAGER_PTR_SIG_CSNZ "\xA3\x00\x00\x00\x00\xFF\x15\x00\x00\x00\x00\x83\xC4\x04\x8B\x4D\xF4"
+#define BOT_MANAGER_PTR_MASK_CSNZ "x????xx????xxxxxx"
+
+#define SHOWLOGINDLG_SIG_CSNZ "\xA1\x00\x00\x00\x00\x56\x57\x8B\xF9\x8B\x80\x00\x00\x00\x00\xFF\xD0\x8B\xF0\x8B\xCE\x8B\x16\x8B\x52\x24"
+#define SHOWLOGINDLG_MASK_CSNZ "x????xxxxxx????xxxxxxxxxxx"
+
+#define CSOMAINPANEL_PTR_SIG_CSNZ "\x8B\x0D\x00\x00\x00\x00\x6A\x01\x8B\x01\xFF\x90\x00\x00\x00\x00\x8B\x0D\x00\x00\x00\x00\x6A\x01\xE8\x00\x00\x00\x00\x8B\x03"
+#define CSOMAINPANEL_PTR_MASK_CSNZ "xx????xxxxxx????xx????xxx????xx"
+
+#define CALL_PANEL_FINDCHILDBYNAME_SIG_CSNZ "\xE8\x00\x00\x00\x00\x89\x47\xC8"
+#define CALL_PANEL_FINDCHILDBYNAME_MASK_CSNZ "x????xxx"
+
+#define CALL_BLACKCIPHER_INIT_SIG "\xE8\x00\x00\x00\x00\x84\xC0\x75\x0C\xE8\x00\x00\x00\x00"
+#define CALL_BLACKCIPHER_INIT_MASK "x????xxxxx????"
+
+#define PACKET_REPORT_PTR_FUNC_REF_SIG "\xE8\x00\x00\x00\x00\x8B\x0D\x00\x00\x00\x00\xE8\x00\x00\x00\x00\x8B\x0D\x00\x00\x00\x00\x8B\x01\xFF\x10"
+#define PACKET_REPORT_PTR_FUNC_REF_MASK "x????xx????x????xx????xxxx"
+
+#define PACKET_CRYPT_SIG "\x55\x8B\xEC\x6A\xFF\x68\x00\x00\x00\x00\x64\xA1\x00\x00\x00\x00\x50\x81\xEC\x00\x00\x00\x00\xA1\x00\x00\x00\x00\x33\xC5\x89\x45\xF0\x53\x56\x57\x50\x8D\x45\xF4\x64\xA3\x00\x00\x00\x00\x8B\x45\x08\x89\x85\x00\x00\x00\x00\x8B\x45\x0C\xC7\x85\x00\x00\x00\x00\x00\x00\x00\x00\xC7\x85\x00\x00\x00\x00\x00\x00\x00\x00\x89\x85\x00\x00\x00\x00\x6A\x01\x8D\x85\x00\x00\x00\x00\xC7\x45\x00\x00\x00\x00\x00\x50\x8D\x8D\x00\x00\x00\x00\xE8\x00\x00\x00\x00\x0F\xB6\x9D\x00\x00\x00\x00"
+#define PACKET_CRYPT_MASK "xxxxxx????xx????xxx????x????xxxxxxxxxxxxxx????xxxxx????xxxxx????????xx????????xx????xxxx????xx?????xxx????x????xxx????"
+
+#define PACKET_HACK_SIG "\x55\x8B\xEC\x6A\x00\x68\x00\x00\x00\x00\x64\xA1\x00\x00\x00\x00\x50\x83\xEC\x00\x53\x56\x57\xA1\x00\x00\x00\x00\x33\xC5\x50\x8D\x45\x00\x64\xA3\x00\x00\x00\x00\x8B\xD9\x89\x5D\x00\x8B\x45\x00\x89\x45\x00\x8B\x45\x00\xC7\x45\x00\x00\x00\x00\x00\xC7\x45\x00\x00\x00\x00\x00\x89\x45\x00\x6A\x00\x8D\x45\x00\xC7\x45\x00\x00\x00\x00\x00\x50\x8D\x4D\x00\xE8\x00\x00\x00\x00\x0F\xB6\x45\x00\x89\x43\x00\x83\xE8"
+#define PACKET_HACK_MASK "xxxx?x????xx????xxx?xxxx????xxxxx?xx????xxxx?xx?xx?xx?xx?????xx?????xx?x?xx?xx?????xxx?x????xxx?xx?xx"
 
 char g_pServerIP[16];
 char g_pServerPort[6];
-
-char g_pUsername[64];
+char g_pLogin[64];
 char g_pPassword[64];
 
 bool g_bUseOriginalServer = false;
 bool g_bDumpMetadata = false;
 bool g_bIgnoreMetadata = false;
+bool g_bDumpQuest = false;
+bool g_bDumpUMsg = false;
+bool g_bDumpAlarm = false;
+bool g_bDumpItem = false;
+bool g_bDumpCrypt = false;
 bool g_bDumpAll = false;
 bool g_bDisableAuthUI = false;
+bool g_bDumpUDP = false;
 bool g_bUseSSL = false;
 bool g_bWriteMetadata = false;
-bool g_bLoadDediFromFile = false;
+bool g_bLoadZBSkillFromFile = false;
+bool g_bRegister = false;
 bool g_bNoNGHook = false;
+
+void* g_pSocketManager = nullptr;
 
 cl_enginefunc_t* g_pEngine;
 
@@ -126,7 +109,6 @@ class CCSBotManager
 {
 public:
 	virtual void Unknown() = NULL;
-	virtual void Unknown2() = NULL;
 	virtual void Bot_Add(int side) = NULL;
 };
 
@@ -139,6 +121,11 @@ ChattingManager* g_pChattingManager;
 WNDPROC oWndProc;
 HWND hWnd;
 
+void* g_pSocketManagerConstructor;
+void* (__thiscall* g_pfnSocketManagerConstructor)(void* _this, bool useSSL);
+
+void* g_pServerConnect;
+
 int(__thiscall* g_pfnGameUI_RunFrame)(void* _this);
 
 typedef void* (__thiscall* tPanel_FindChildByName)(void* _this, const char* name, bool recurseDown);
@@ -147,8 +134,39 @@ tPanel_FindChildByName g_pfnPanel_FindChildByName;
 typedef int(__thiscall* tLoginDlg_OnCommand)(void* _this, const char* command);
 tLoginDlg_OnCommand g_pfnLoginDlg_OnCommand;
 
+typedef bool(__thiscall* tCreateStringTable)(int* _this, const char* filename);
+tCreateStringTable g_pfnCreateStringTable;
+
 typedef void(__thiscall* tParseCSV)(int* _this, unsigned char* buffer, int size);
 tParseCSV g_pfnParseCSV;
+
+void* g_pPacket_Metadata_Parse;
+int(__thiscall* g_pfnPacket_Metadata_Parse)(void* _this, void* packetBuffer, int packetSize);
+
+void* g_pPacket_Quest_Parse;
+int(__thiscall* g_pfnPacket_Quest_Parse)(void* _this, void* packetBuffer, int packetSize);
+
+void* g_pPacket_UMsg_Parse;
+int(__thiscall* g_pfnPacket_UMsg_Parse)(void* _this, void* packetBuffer, int packetSize);
+
+void* g_pPacket_Alarm_Parse;
+int(__thiscall* g_pfnPacket_Alarm_Parse)(void* _this, void* packetBuffer, int packetSize);
+
+void* g_pPacket_Item_Parse;
+int(__thiscall* g_pfnPacket_Item_Parse)(void* _this, void* packetBuffer, int packetSize);
+
+void* g_pPacket_Crypt_Parse;
+int(__thiscall* g_pfnPacket_Crypt_Parse)(void* _this, void* packetBuffer, int packetSize);
+
+void* g_pPacket_Host;
+typedef int(__thiscall* tPacket_Host_Parse)(void* _this, void* packetBuffer, int packetSize);
+tPacket_Host_Parse g_pfnPacket_Host_Parse;
+
+const char*(__thiscall* g_pfnGetCryptoProtocolName)(void* _this);
+
+void* (__thiscall* g_pfnSocketConstructor)(int _this, int a2, int a3, char a4);
+
+int (__thiscall* g_pfnSocket_Read)(void* _this, char* outBuf, int len, void* a4, bool initialMsg);
 
 typedef void*(*tEVP_CIPHER_CTX_new)();
 tEVP_CIPHER_CTX_new g_pfnEVP_CIPHER_CTX_new;
@@ -159,9 +177,8 @@ char NGClient_Return1()
 	return 1;
 }
 
-int NGClient_Return17238()
+void NGClient_Void()
 {
-	return 17238;
 }
 
 // logger shit
@@ -184,9 +201,9 @@ void Pbuf_AddText(const char* text)
 	g_pEngine->pfnClientCmd((char*)text);
 }
 
-CreateHookClass(void*, SocketManagerConstructor, bool useSSL)
+void* __fastcall SockMgr(void* __this, int reg, bool useSSL)
 {
-	return g_pfnSocketManagerConstructor(ptr, g_bUseSSL);
+	return g_pfnSocketManagerConstructor(__this, g_bUseSSL);
 }
 
 CreateHookClass(int, ServerConnect, unsigned long ip, unsigned short port, bool validate)
@@ -194,9 +211,9 @@ CreateHookClass(int, ServerConnect, unsigned long ip, unsigned short port, bool 
 	return g_pfnServerConnect(ptr, inet_addr(g_pServerIP), htons(atoi(g_pServerPort)), validate);
 }
 
-CreateHook(__cdecl, void, HolePunch_SetServerInfo, unsigned long ip, unsigned short port)
+CreateHook(__cdecl, void, HolePunch__SetServerInfo, unsigned long ip, unsigned short port)
 {
-	g_pfnHolePunch_SetServerInfo(inet_addr(g_pServerIP), htons(atoi(g_pServerPort)));
+	g_pfnHolePunch__SetServerInfo(inet_addr(g_pServerIP), htons(atoi(g_pServerPort)));
 }
 
 LRESULT CALLBACK WndProc(HWND hWnd, UINT uMsg, WPARAM wParam, LPARAM lParam)
@@ -210,184 +227,44 @@ LRESULT CALLBACK WndProc(HWND hWnd, UINT uMsg, WPARAM wParam, LPARAM lParam)
 	return CallWindowProc(oWndProc, hWnd, uMsg, wParam, lParam);
 }
 
-enum dediCsvType {
-	TDM_Spawn_Replacement,
-	ZBS_ENC_zsrift_splinter,
-	AllStar_Skill,
-	AllStar_Status,
-	LastStand,
-	ProtectionSupplyWeapon,
-	RandomRule_Classic,
-	RandomRule,
-	ZB3_AllHero,
-	ZSRogueLiteAbility,
-	ZSTransform_Skill,
-	ZSTransform_Status,
-	ZHE_RuleBonus,
-	FireBombOption,
-	ZombieSkillProperty_Crazy,
-	ZombieSkillProperty_JumpBuff,
-	ZombieSkillProperty_ArmorUp,
-	ZombieSkillProperty_Heal,
-	ZombieSkillProperty_ShieldBuf,
-	ZombieSkillProperty_Cloacking,
-	ZombieSkillProperty_Trap,
-	ZombieSkillProperty_Smoke,
-	ZombieSkillProperty_VoodooHeal,
-	ZombieSkillProperty_Shock,
-	ZombieSkillProperty_Rush,
-	ZombieSkillProperty_Pile,
-	ZombieSkillProperty_Bat,
-	ZombieSkillProperty_Stiffen,
-	ZombieSkillProperty_SelfDestruct,
-	ZombieSkillProperty_Penetration,
-	ZombieSkillProperty_Revival,
-	ZombieSkillProperty_Telleport,
-	ZombieSkillProperty_Boost,
-	ZombieSkillProperty_BombCreate,
-	ZombieSkillProperty_Flying,
-	ZombieSkillProperty_Fireball,
-	ZombieSkillProperty_DogShoot,
-	ZombieSkillProperty_ViolentRush,
-	ZombieSkillProperty_WebShooter,
-	ZombieSkillProperty_WebBomb,
-	ZombieSkillProperty_Protect,
-	ZombieSkillProperty_ChargeSlash,
-	ZombieSkillProperty_Claw,
-	ZombieSkillProperty_Confuse,
-	ZombieSkillProperty_Defending,
-	ZombieSkillProperty_Shield,
-	HumanAbilityData,
-	HumanAbilityProbData,
-	SpecialZombieProb,
-	VirusFactorReq,
-	ZombiVirusBonus,
-	ZombieDamageExp
-};
-
-std::unordered_map<std::string, dediCsvType> dediCsv = {
-	{ "maps/TDM_Spawn_Replacement_Dedi.csv", TDM_Spawn_Replacement },
-	{ "maps/ZBS_ENC_zsrift_splinter_dedi.json", ZBS_ENC_zsrift_splinter },
-	{ "resource/allstar/AllStar_Skill-Dedi.csv", AllStar_Skill },
-	{ "resource/allstar/AllStar_Status-Dedi.csv", AllStar_Status },
-	{ "resource/ModeEvent/LastStand_Dedi.csv", LastStand },
-	{ "resource/ModeEvent/ProtectionSupplyWeapon_Dedi.csv", ProtectionSupplyWeapon },
-	{ "resource/ModeEvent/RandomRule_Classic_Dedi.csv", RandomRule_Classic },
-	{ "resource/ModeEvent/RandomRule_Dedi.csv", RandomRule },
-	{ "resource/ModeEvent/ZB3_AllHero_Dedi.json", ZB3_AllHero },
-	{ "resource/ModeEvent/ZSRogueLiteAbility_Dedi.csv", ZSRogueLiteAbility },
-	{ "resource/ModeEvent/ZSTransform_Skill-Dedi.csv", ZSTransform_Skill },
-	{ "resource/ModeEvent/ZSTransform_Status-Dedi.csv", ZSTransform_Status },
-	{ "resource/ZombieHorrorEscape/ZHE_RuleBonus_Dedi.csv", ZHE_RuleBonus },
-	{ "resource/zombi/FireBombOption_Dedi.csv", FireBombOption },
-	{ "resource/zombi/ZombieSkillProperty_Dedi/ZombieSkillProperty_Crazy.csv", ZombieSkillProperty_Crazy },
-	{ "resource/zombi/ZombieSkillProperty_Dedi/ZombieSkillProperty_JumpBuff.csv", ZombieSkillProperty_JumpBuff },
-	{ "resource/zombi/ZombieSkillProperty_Dedi/ZombieSkillProperty_ArmorUp.csv", ZombieSkillProperty_ArmorUp },
-	{ "resource/zombi/ZombieSkillProperty_Dedi/ZombieSkillProperty_Heal.csv", ZombieSkillProperty_Heal },
-	{ "resource/zombi/ZombieSkillProperty_Dedi/ZombieSkillProperty_ShieldBuf.csv", ZombieSkillProperty_ShieldBuf },
-	{ "resource/zombi/ZombieSkillProperty_Dedi/ZombieSkillProperty_Cloacking.csv", ZombieSkillProperty_Cloacking },
-	{ "resource/zombi/ZombieSkillProperty_Dedi/ZombieSkillProperty_Trap.csv", ZombieSkillProperty_Trap },
-	{ "resource/zombi/ZombieSkillProperty_Dedi/ZombieSkillProperty_Smoke.csv", ZombieSkillProperty_Smoke },
-	{ "resource/zombi/ZombieSkillProperty_Dedi/ZombieSkillProperty_VoodooHeal.csv", ZombieSkillProperty_VoodooHeal },
-	{ "resource/zombi/ZombieSkillProperty_Dedi/ZombieSkillProperty_Shock.csv", ZombieSkillProperty_Shock },
-	{ "resource/zombi/ZombieSkillProperty_Dedi/ZombieSkillProperty_Rush.csv", ZombieSkillProperty_Rush },
-	{ "resource/zombi/ZombieSkillProperty_Dedi/ZombieSkillProperty_Pile.csv", ZombieSkillProperty_Pile },
-	{ "resource/zombi/ZombieSkillProperty_Dedi/ZombieSkillProperty_Bat.csv", ZombieSkillProperty_Bat },
-	{ "resource/zombi/ZombieSkillProperty_Dedi/ZombieSkillProperty_Stiffen.csv", ZombieSkillProperty_Stiffen },
-	{ "resource/zombi/ZombieSkillProperty_Dedi/ZombieSkillProperty_SelfDestruct.csv", ZombieSkillProperty_SelfDestruct },
-	{ "resource/zombi/ZombieSkillProperty_Dedi/ZombieSkillProperty_Penetration.csv", ZombieSkillProperty_Penetration },
-	{ "resource/zombi/ZombieSkillProperty_Dedi/ZombieSkillProperty_Revival.csv", ZombieSkillProperty_Revival },
-	{ "resource/zombi/ZombieSkillProperty_Dedi/ZombieSkillProperty_Telleport.csv", ZombieSkillProperty_Telleport },
-	{ "resource/zombi/ZombieSkillProperty_Dedi/ZombieSkillProperty_Boost.csv", ZombieSkillProperty_Boost },
-	{ "resource/zombi/ZombieSkillProperty_Dedi/ZombieSkillProperty_BombCreate.csv", ZombieSkillProperty_BombCreate },
-	{ "resource/zombi/ZombieSkillProperty_Dedi/ZombieSkillProperty_Flying.csv", ZombieSkillProperty_Flying },
-	{ "resource/zombi/ZombieSkillProperty_Dedi/ZombieSkillProperty_Fireball.csv", ZombieSkillProperty_Fireball },
-	{ "resource/zombi/ZombieSkillProperty_Dedi/ZombieSkillProperty_DogShoot.csv", ZombieSkillProperty_DogShoot },
-	{ "resource/zombi/ZombieSkillProperty_Dedi/ZombieSkillProperty_ViolentRush.csv", ZombieSkillProperty_ViolentRush },
-	{ "resource/zombi/ZombieSkillProperty_Dedi/ZombieSkillProperty_WebShooter.csv", ZombieSkillProperty_WebShooter },
-	{ "resource/zombi/ZombieSkillProperty_Dedi/ZombieSkillProperty_WebBomb.csv", ZombieSkillProperty_WebBomb },
-	{ "resource/zombi/ZombieSkillProperty_Dedi/ZombieSkillProperty_Protect.csv", ZombieSkillProperty_Protect },
-	{ "resource/zombi/ZombieSkillProperty_Dedi/ZombieSkillProperty_ChargeSlash.csv", ZombieSkillProperty_ChargeSlash },
-	{ "resource/zombi/ZombieSkillProperty_Dedi/ZombieSkillProperty_Claw.csv", ZombieSkillProperty_Claw },
-	{ "resource/zombi/ZombieSkillProperty_Dedi/ZombieSkillProperty_Confuse.csv", ZombieSkillProperty_Confuse },
-	{ "resource/zombi/ZombieSkillProperty_Dedi/ZombieSkillProperty_Defending.csv", ZombieSkillProperty_Defending },
-	{ "resource/zombi/ZombieSkillProperty_Dedi/ZombieSkillProperty_Shield.csv", ZombieSkillProperty_Shield },
-	{ "resource/zombi5/HumanAbilityData_Dedi.csv", HumanAbilityData },
-	{ "resource/zombi5/HumanAbilityProbData_Dedi.csv", HumanAbilityProbData },
-	{ "resource/zombi5/SpecialZombieProb_Dedi.csv", SpecialZombieProb },
-	{ "resource/zombi5/VirusFactorReq_Dedi.csv", VirusFactorReq },
-	{ "resource/zombi5/ZombiVirusBonus_Dedi.csv", ZombiVirusBonus },
-	{ "resource/zombiez/ZombieDamageExp_Dedi.csv", ZombieDamageExp }
-};
-
-bool LoadCsv(int* _this, const char* filename, unsigned char* defaultBuf, int defaultBufSize)
+bool LoadCsv(int* _this, const char* filename, unsigned char* defaultBuf, int defaultBufSize, bool fromFile)
 {
 	unsigned char* buffer = NULL;
 	long size = 0;
-
-	if (g_bLoadDediFromFile)
+	if (fromFile)
 	{
-		char path[MAX_PATH];
-		snprintf(path, sizeof(path), "%s/Data/%s", Sys_GetLongPathNameWithoutBin(), filename);
-
-		FILE* file = fopen(path, "rb");
-		if (!file)
+		FILE* f = fopen("ZombieSkillTable.csv", "rb");
+		if (!f)
 		{
-			printf("LoadCsv: %s failed to load from file (file == NULL), loading from filesystem\n", filename);
-			goto LoadFileSystem;
+			return g_pfnCreateStringTable(_this, filename);
 		}
 
-		fseek(file, 0, SEEK_END);
-		size = ftell(file);
-		rewind(file);
+		fseek(f, 0, SEEK_END);
+		size = ftell(f);
+		fseek(f, 0, SEEK_SET);
 
-		if (size)
+		if (size <= 0)
 		{
-			buffer = (unsigned char*)malloc(size);
-			if (buffer)
-				fread(buffer, 1, size, file);
-			else
-				printf("LoadCsv: %s failed to load from file (malloc failed), loading from filesystem\n", filename);
+			fclose(f);
+			return g_pfnCreateStringTable(_this, filename);
 		}
-		else
-			printf("LoadCsv: %s failed to load from file (size <= 0), loading from filesystem\n", filename);
 
-		fclose(file);
+		buffer = (unsigned char*)malloc(size + 1);
+		if (!buffer)
+		{
+			fclose(f);
+			return g_pfnCreateStringTable(_this, filename);
+		}
 
-		if (buffer)
-			goto SetBuffer;
-	}
-
-LoadFileSystem:
-	FileHandle_t fh = g_pFileSystem->Open(filename, "rb", 0);
-	if (!fh)
-	{
-		printf("LoadCsv: %s failed to load from filesystem (fh == NULL), loading hardcoded values\n", filename);
-		goto LoadDefaultBuf;
-	}
-
-	size = g_pFileSystem->Size(fh);
-	if (size)
-	{
-		buffer = (unsigned char*)malloc(size);
-		if (buffer)
-			g_pFileSystem->Read(buffer, size, fh);
-		else
-			printf("LoadCsv: %s failed to load from filesystem (malloc failed), loading hardcoded values\n", filename);
+		fread(buffer, 1, size, f);
+		fclose(f);
 	}
 	else
-		printf("LoadCsv: %s failed to load from filesystem (size <= 0), loading hardcoded values\n", filename);
+	{
+		buffer = defaultBuf;
+		size = defaultBufSize;
+	}
 
-	g_pFileSystem->Close(fh);
-
-	if (buffer)
-		goto SetBuffer;
-
-LoadDefaultBuf:
-	buffer = defaultBuf;
-	size = defaultBufSize;
-
-SetBuffer:
 	g_pfnParseCSV(_this, buffer, size);
 
 	bool result = 0;
@@ -397,222 +274,26 @@ SetBuffer:
 	return result;
 }
 
-CreateHookClassType(bool, CreateStringTable, int, const char* filename)
+bool __fastcall CreateStringTable(int* _this, int shit, const char* filename)
 {
-	std::string filenameStr = filename;
-	if (filenameStr.find("maps/BoostingPoints_Dedi_") != std::string::npos)
-		return LoadCsv(ptr, filename, NULL, NULL);
-
-	if (dediCsv.find(filename) != dediCsv.end())
+	if (!strcmp(filename, "resource/zombi/ZombieSkillTable_Dedi.csv"))
 	{
-		switch (dediCsv[filename])
-		{
-		case TDM_Spawn_Replacement: return LoadCsv(ptr, filename, g_TDM_Spawn_Replacement, sizeof(g_TDM_Spawn_Replacement));
-		case AllStar_Skill: return LoadCsv(ptr, filename, g_AllStar_Skill, sizeof(g_AllStar_Skill));
-		case AllStar_Status: return LoadCsv(ptr, filename, g_AllStar_Status, sizeof(g_AllStar_Status));
-		case LastStand: return LoadCsv(ptr, filename, g_LastStand, sizeof(g_LastStand));
-		case ProtectionSupplyWeapon: return LoadCsv(ptr, filename, g_ProtectionSupplyWeapon, sizeof(g_ProtectionSupplyWeapon));
-		case RandomRule_Classic: return LoadCsv(ptr, filename, g_RandomRule_Classic, sizeof(g_RandomRule_Classic));
-		case RandomRule: return LoadCsv(ptr, filename, g_RandomRule, sizeof(g_RandomRule));
-		case ZSRogueLiteAbility: return LoadCsv(ptr, filename, g_ZSRogueLiteAbility, sizeof(g_ZSRogueLiteAbility));
-		case ZSTransform_Skill: return LoadCsv(ptr, filename, g_ZSTransform_Skill, sizeof(g_ZSTransform_Skill));
-		case ZSTransform_Status: return LoadCsv(ptr, filename, g_ZSTransform_Status, sizeof(g_ZSTransform_Status));
-		case ZHE_RuleBonus: return LoadCsv(ptr, filename, NULL, NULL);
-		case FireBombOption: return LoadCsv(ptr, filename, g_FireBombOption, sizeof(g_FireBombOption));
-		case HumanAbilityData: return LoadCsv(ptr, filename, g_HumanAbilityData, sizeof(g_HumanAbilityData));
-		case HumanAbilityProbData: return LoadCsv(ptr, filename, g_HumanAbilityProbData, sizeof(g_HumanAbilityProbData));
-		case SpecialZombieProb: return LoadCsv(ptr, filename, g_SpecialZombieProb, sizeof(g_SpecialZombieProb));
-		case VirusFactorReq: return LoadCsv(ptr, filename, g_VirusFactorReq, sizeof(g_VirusFactorReq));
-		case ZombiVirusBonus: return LoadCsv(ptr, filename, g_ZombiVirusBonus, sizeof(g_ZombiVirusBonus));
-		case ZombieDamageExp: return LoadCsv(ptr, filename, NULL, NULL);
-		}
+		return LoadCsv(_this, filename, g_ZBSkill, sizeof(g_ZBSkill), g_bLoadZBSkillFromFile);
+	}
+	else if (!strcmp(filename, "resource/allstar/AllStar_Status-Dedi.csv"))
+	{
+		return LoadCsv(_this, filename, g_AllStar_Status, sizeof(g_AllStar_Status), false);
+	}
+	else if (!strcmp(filename, "resource/allstar/AllStar_Skill-Dedi.csv"))
+	{
+		return LoadCsv(_this, filename, g_AllStar_Skill, sizeof(g_AllStar_Skill), false);
 	}
 
-	return g_pfnCreateStringTable(ptr, filename);
+	//printf("%s\n", filename);
+	return g_pfnCreateStringTable(_this, filename);
 }
 
-bool LoadJson(std::string* filename, std::string* oriBuf, unsigned char* defaultBuf, int defaultBufSize)
-{
-	unsigned char* buffer = NULL;
-	long size = 0;
-
-	if (g_bLoadDediFromFile)
-	{
-		char path[MAX_PATH];
-		snprintf(path, sizeof(path), "%s/Data/%s", Sys_GetLongPathNameWithoutBin(), filename->c_str());
-
-		FILE* file = fopen(path, "rb");
-		if (!file)
-		{
-			printf("LoadJson: %s failed to load from file (file == NULL), loading from filesystem\n", filename->c_str());
-			goto LoadFileSystem;
-		}
-
-		fseek(file, 0, SEEK_END);
-		size = ftell(file);
-		rewind(file);
-
-		if (size)
-		{
-			buffer = (unsigned char*)malloc(size);
-			if (buffer)
-				fread(buffer, 1, size, file);
-			else
-				printf("LoadJson: %s failed to load from file (malloc failed), loading from filesystem\n", filename->c_str());
-		}
-		else
-			printf("LoadJson: %s failed to load from file (size <= 0), loading from filesystem\n", filename->c_str());
-
-		fclose(file);
-
-		if (buffer)
-			goto SetBuffer;
-	}
-
-LoadFileSystem:
-	FileHandle_t fh = g_pFileSystem->Open(filename->c_str(), "r", 0);
-	if (!fh)
-	{
-		printf("LoadJson: %s failed to load from filesystem (fh == NULL), loading hardcoded values\n", filename->c_str());
-		goto LoadDefaultBuf;
-	}
-
-	size = g_pFileSystem->Size(fh);
-	if (size)
-	{
-		buffer = (unsigned char*)malloc(size);
-		if (buffer)
-			g_pFileSystem->Read(buffer, size, fh);
-		else
-			printf("LoadJson: %s failed to load from filesystem (malloc failed), loading hardcoded values\n", filename->c_str());
-	}
-	else
-		printf("LoadJson: %s failed to load from filesystem (size <= 0), loading hardcoded values\n", filename->c_str());
-
-	g_pFileSystem->Close(fh);
-
-	if (buffer)
-		goto SetBuffer;
-
-LoadDefaultBuf:
-	buffer = defaultBuf;
-	size = defaultBufSize;
-
-SetBuffer:
-	*oriBuf = std::string((char*)buffer, (char*)buffer + size);
-
-	return 1;
-}
-
-CreateHook(__stdcall, int, LoadJson, std::string* filename, std::string* buffer)
-{
-	if (dediCsv.find(*filename) != dediCsv.end())
-	{
-		switch (dediCsv[*filename])
-		{
-		case ZBS_ENC_zsrift_splinter: return LoadJson(filename, buffer, g_ZBS_ENC_zsrift_splinter, sizeof(g_ZBS_ENC_zsrift_splinter));
-		case ZB3_AllHero: return LoadJson(filename, buffer, g_ZB3_AllHero, sizeof(g_ZB3_AllHero));
-		case ZombieSkillProperty_Crazy: return LoadJson(filename, buffer, g_ZombieSkillProperty_Crazy, sizeof(g_ZombieSkillProperty_Crazy));
-		case ZombieSkillProperty_JumpBuff: return LoadJson(filename, buffer, g_ZombieSkillProperty_JumpBuff, sizeof(g_ZombieSkillProperty_JumpBuff));
-		case ZombieSkillProperty_ArmorUp: return LoadJson(filename, buffer, g_ZombieSkillProperty_ArmorUp, sizeof(g_ZombieSkillProperty_ArmorUp));
-		case ZombieSkillProperty_Heal: return LoadJson(filename, buffer, g_ZombieSkillProperty_Heal, sizeof(g_ZombieSkillProperty_Heal));
-		case ZombieSkillProperty_ShieldBuf: return LoadJson(filename, buffer, g_ZombieSkillProperty_ShieldBuf, sizeof(g_ZombieSkillProperty_ShieldBuf));
-		case ZombieSkillProperty_Cloacking: return LoadJson(filename, buffer, g_ZombieSkillProperty_Cloacking, sizeof(g_ZombieSkillProperty_Cloacking));
-		case ZombieSkillProperty_Trap: return LoadJson(filename, buffer, g_ZombieSkillProperty_Trap, sizeof(g_ZombieSkillProperty_Trap));
-		case ZombieSkillProperty_Smoke: return LoadJson(filename, buffer, g_ZombieSkillProperty_Smoke, sizeof(g_ZombieSkillProperty_Smoke));
-		case ZombieSkillProperty_VoodooHeal: return LoadJson(filename, buffer, g_ZombieSkillProperty_VoodooHeal, sizeof(g_ZombieSkillProperty_VoodooHeal));
-		case ZombieSkillProperty_Shock: return LoadJson(filename, buffer, g_ZombieSkillProperty_Shock, sizeof(g_ZombieSkillProperty_Shock));
-		case ZombieSkillProperty_Rush: return LoadJson(filename, buffer, g_ZombieSkillProperty_Rush, sizeof(g_ZombieSkillProperty_Rush));
-		case ZombieSkillProperty_Pile: return LoadJson(filename, buffer, g_ZombieSkillProperty_Pile, sizeof(g_ZombieSkillProperty_Pile));
-		case ZombieSkillProperty_Bat: return LoadJson(filename, buffer, g_ZombieSkillProperty_Bat, sizeof(g_ZombieSkillProperty_Bat));
-		case ZombieSkillProperty_Stiffen: return LoadJson(filename, buffer, g_ZombieSkillProperty_Stiffen, sizeof(g_ZombieSkillProperty_Stiffen));
-		case ZombieSkillProperty_SelfDestruct: return LoadJson(filename, buffer, g_ZombieSkillProperty_SelfDestruct, sizeof(g_ZombieSkillProperty_SelfDestruct));
-		case ZombieSkillProperty_Penetration: return LoadJson(filename, buffer, g_ZombieSkillProperty_Penetration, sizeof(g_ZombieSkillProperty_Penetration));
-		case ZombieSkillProperty_Revival: return LoadJson(filename, buffer, g_ZombieSkillProperty_Revival, sizeof(g_ZombieSkillProperty_Revival));
-		case ZombieSkillProperty_Telleport: return LoadJson(filename, buffer, g_ZombieSkillProperty_Telleport, sizeof(g_ZombieSkillProperty_Telleport));
-		case ZombieSkillProperty_Boost: return LoadJson(filename, buffer, g_ZombieSkillProperty_Boost, sizeof(g_ZombieSkillProperty_Boost));
-		case ZombieSkillProperty_BombCreate: return LoadJson(filename, buffer, g_ZombieSkillProperty_BombCreate, sizeof(g_ZombieSkillProperty_BombCreate));
-		case ZombieSkillProperty_Flying: return LoadJson(filename, buffer, g_ZombieSkillProperty_Flying, sizeof(g_ZombieSkillProperty_Flying));
-		case ZombieSkillProperty_Fireball: return LoadJson(filename, buffer, g_ZombieSkillProperty_Fireball, sizeof(g_ZombieSkillProperty_Fireball));
-		case ZombieSkillProperty_DogShoot: return LoadJson(filename, buffer, g_ZombieSkillProperty_DogShoot, sizeof(g_ZombieSkillProperty_DogShoot));
-		case ZombieSkillProperty_ViolentRush: return LoadJson(filename, buffer, g_ZombieSkillProperty_ViolentRush, sizeof(g_ZombieSkillProperty_ViolentRush));
-		case ZombieSkillProperty_WebShooter: return LoadJson(filename, buffer, g_ZombieSkillProperty_WebShooter, sizeof(g_ZombieSkillProperty_WebShooter));
-		case ZombieSkillProperty_WebBomb: return LoadJson(filename, buffer, g_ZombieSkillProperty_WebBomb, sizeof(g_ZombieSkillProperty_WebBomb));
-		case ZombieSkillProperty_Protect: return LoadJson(filename, buffer, g_ZombieSkillProperty_Protect, sizeof(g_ZombieSkillProperty_Protect));
-		case ZombieSkillProperty_ChargeSlash: return LoadJson(filename, buffer, g_ZombieSkillProperty_ChargeSlash, sizeof(g_ZombieSkillProperty_ChargeSlash));
-		case ZombieSkillProperty_Claw: return LoadJson(filename, buffer, g_ZombieSkillProperty_Claw, sizeof(g_ZombieSkillProperty_Claw));
-		case ZombieSkillProperty_Confuse: return LoadJson(filename, buffer, g_ZombieSkillProperty_Confuse, sizeof(g_ZombieSkillProperty_Confuse));
-		case ZombieSkillProperty_Defending: return LoadJson(filename, buffer, g_ZombieSkillProperty_Defending, sizeof(g_ZombieSkillProperty_Defending));
-		case ZombieSkillProperty_Shield: return LoadJson(filename, buffer, g_ZombieSkillProperty_Shield, sizeof(g_ZombieSkillProperty_Shield));
-		}
-	}
-	else if ((*filename).find("maps/ZBS_ENC_") != std::string::npos || (*filename).find("_ent_dedi.json") != std::string::npos)
-		return LoadJson(filename, buffer, NULL, NULL);
-
-	return g_pfnLoadJson(filename, buffer);
-}
-
-enum metaDataType
-{
-	zipMetadata,
-	binToJsonMetadata,
-	binMetadata
-};
-
-metaDataType GetMetadataType(int metaDataID)
-{
-	switch (metaDataID)
-	{
-	case 0:
-	case 1:
-	case 2:
-	case 9:
-	case 17:
-	case 18:
-	case 24:
-	case 25:
-	case 26:
-	case 27:
-	case 28:
-	case 29:
-	case 32:
-	case 33:
-	case 34:
-	case 35:
-	case 36:
-	case 37:
-	case 38:
-	case 39:
-	case 40:
-	case 41:
-	case 42:
-	case 44:
-	case 45:
-	case 46:
-	case 48:
-	case 50:
-	case 51:
-	case 52:
-	case 53:
-	case 56:
-	case 58:
-	case 59:
-	case 60:
-	case 61:
-	case 62:
-	case 63:
-		return zipMetadata;
-	case 6:
-	case 15:
-	case 16:
-	case 65:
-		return binToJsonMetadata;
-	default:
-		return binMetadata;
-	}
-}
-
-const char* GetMetadataName(int metaDataID)
+const char* GetCSVMetadataName(int metaDataID)
 {
 	switch (metaDataID)
 	{
@@ -622,14 +303,8 @@ const char* GetMetadataName(int metaDataID)
 		return "ClientTable.csv";
 	case 2:
 		return "ModeList.csv";
-	case 6:
-		return "WeaponPaints";
 	case 9:
 		return "MatchOption.csv";
-	case 15:
-		return "ZombieWarWeaponList";
-	case 16:
-		return "RandomWeaponList";
 	case 17:
 		return "weaponparts.csv";
 	case 18:
@@ -646,8 +321,6 @@ const char* GetMetadataName(int metaDataID)
 		return "ReinforceMaxLv.csv";
 	case 29:
 		return "ReinforceMaxExp.csv";
-	case 30:
-		return "ReinforceItemsExp";
 	case 32:
 		return "Item.csv";
 	case 33:
@@ -671,7 +344,7 @@ const char* GetMetadataName(int metaDataID)
 	case 42:
 		return "WeaponProp.json";
 	case 44:
-		return "BlackBadgeShop.csv";
+		return "SeasonBadgeShop.csv";
 	case 45:
 		return "ppsystem.json";
 	case 46:
@@ -682,382 +355,207 @@ const char* GetMetadataName(int metaDataID)
 		return "ModeEvent.csv";
 	case 51:
 		return "EventShop.csv";
-	case 52:
-		return "FamilyTotalWarMap.csv";
-	case 53:
-		return "FamilyTotalWar.json";
-	case 56:
-		return "WeaponAscend.csv";
-	case 58:
-		return "PerkParam.csv";
-	case 59:
-		return "AnniversaryShop.csv";
-	case 60:
-		return "GlobalAnniversaryLottery.json";
-	case 61:
-		return "AnniversaryLottery.json";
-	case 62:
-		return "AnniversaryTicket.json";
-	case 63:
-		return "Synthesis.csv";
-	case 65:
-		return "VoxelConfigList";
+	}
+	return NULL;
+}
+
+const char* GetBinMetadataName(int metaDataID)
+{
+	switch (metaDataID)
+	{
+	case 6:
+		return "PaintItemList";
+	case 16:
+		return "RandomWeaponList";
+	case 30:
+		return "ReinforceItemsExp";
 	}
 	return NULL;
 }
 
 #pragma region Packet
-std::string readStr(char* buffer, int offset)
+
+class Packet
 {
-	std::string result;
+public:
+	int unk;
+	void* ptr;
+	void* ptr2;
+	int unk1;
+	int unk2;
+	int unk3;
+	int unk4;
+};
 
-	char curChar = buffer[offset]; offset++;
-	while (curChar != '\0')
-	{
-		result += curChar;
-		curChar = buffer[offset]; offset++;
-	}
-
-	return result;
-}
-
-void* g_pPacketMetadataParse;
-
-CreateHookClass(int, Packet_Metadata_Parse, void* packetBuffer, int packetSize)
+int __fastcall Packet_Metadata_Parse(Packet* _this, int a2, void* packetBuffer, int packetSize)
 {
-	g_pPacketMetadataParse = ptr;
-
 	if (g_bIgnoreMetadata)
 	{
 		return false;
 	}
 
 	unsigned char metaDataID = *(unsigned char*)packetBuffer;
-	printf("Received metadata ID %d\n", metaDataID);
+	printf("%d\n", metaDataID);
 
-	metaDataType metaDataType = GetMetadataType(metaDataID);
-	const char* metaDataName = GetMetadataName(metaDataID);
+	bool csvMetaData = true;
+	const char* metaDataName = GetCSVMetadataName(metaDataID);
+	if (!metaDataName)
+	{
+		metaDataName = GetBinMetadataName(metaDataID);
+		csvMetaData = false;
+	}
 
 	if (g_bDumpMetadata)
 	{
 		char name[MAX_PATH];
 		FILE* file = NULL;
+		unsigned short metaDataSize = 0;
 
 		CreateDirectory("MetadataDump", NULL);
 
-		switch (metaDataType)
+		if (metaDataName)
 		{
-		case zipMetadata:
-		{
-			sprintf_s(name, "MetadataDump/Metadata_%s.zip", metaDataName);
-			break;
+			if (csvMetaData)
+				metaDataSize = *((unsigned short*)((char*)packetBuffer + 1));
+
+			sprintf_s(name, "MetadataDump/Metadata_%s.bin", metaDataName);
 		}
-		case binToJsonMetadata:
+		else
 		{
-			sprintf_s(name, "MetadataDump/%s.json", metaDataName);
-			file = fopen(name, "wb");
-			if (!file)
+			sprintf_s(name, "MetadataDump/Metadata_Unk%d.bin", metaDataID);
+		}
+
+		file = fopen(name, "wb");
+		if (!file)
+		{
+			printf("Can't open '%s' file to write metadata dump\n", name);
+		}
+		else
+		{
+			if (metaDataSize && csvMetaData)
 			{
-				printf("Can't open '%s' file to write metadata dump\n", name);
+				fwrite(((unsigned short*)((char*)packetBuffer + 3)), metaDataSize, 1, file);
 			}
 			else
 			{
-				switch (metaDataID)
-				{
-				case 6:
-				{
-					fwrite("{\n\t\"Version\": 1,\n", 17, 1, file);
-
-					int offset = 1;
-					int size = *((unsigned short*)((char*)packetBuffer + offset)); offset += 2;
-
-					for (int i = 0; i < size; i++)
-					{
-						int weaponID = *((unsigned short*)((char*)packetBuffer + offset)); offset += 2;
-						int size2 = *((unsigned short*)((char*)packetBuffer + offset)); offset += 2;
-
-						char weaponIDStr[32];
-						int weaponIDSize = sprintf_s(weaponIDStr, "\t\"%d\": {\n\t\t\"Paints\": [\n", weaponID);
-						fwrite(weaponIDStr, weaponIDSize, 1, file);
-
-						for (int j = 0; j < size2; j++)
-						{
-							int paintID = *((unsigned short*)((char*)packetBuffer + offset)); offset += 2;
-
-							char paintIDStr[16];
-							int paintIDSize = sprintf_s(paintIDStr, "\t\t\t%d", paintID);
-							fwrite(paintIDStr, paintIDSize, 1, file);
-
-							if (size2 - 1 != j)
-								fwrite(",", 1, 1, file);
-
-							fwrite("\n", 1, 1, file);
-						}
-
-						fwrite("\t\t]\n\t}", 6, 1, file);
-
-						if (size - 1 != i)
-							fwrite(",", 1, 1, file);
-
-						fwrite("\n", 1, 1, file);
-					}
-
-					fwrite("}", 1, 1, file);
-					break;
-				}
-				case 15:
-				{
-					fwrite("{\n\t\"Version\": 1,\n\t\"Weapons\": [\n", 31, 1, file);
-
-					int offset = 1;
-					int size = *((unsigned short*)((char*)packetBuffer + offset)); offset += 2;
-
-					for (int i = 0; i < size; i++)
-					{
-						int itemID = *((unsigned long*)((char*)packetBuffer + offset)); offset += 4;
-
-						char itemIDStr[16];
-						int itemIDSize = sprintf_s(itemIDStr, "\t\t%d", itemID);
-						fwrite(itemIDStr, itemIDSize, 1, file);
-
-						if (size - 1 != i)
-							fwrite(",", 1, 1, file);
-
-						fwrite("\n", 1, 1, file);
-					}
-
-					fwrite("\t]\n}", 4, 1, file);
-					break;
-				}
-				case 16:
-				{
-					fwrite("{\n\t\"Version\": 1,\n", 17, 1, file);
-
-					int offset = 1;
-					int size = *((unsigned long*)((char*)packetBuffer + offset)); offset += 4;
-
-					for (int i = 0; i < size; i++)
-					{
-						int itemID = *((unsigned long*)((char*)packetBuffer + offset)); offset += 4;
-						int size2 = *((unsigned long*)((char*)packetBuffer + offset)); offset += 4;
-
-						char itemIDStr[16];
-						int itemIDSize = sprintf_s(itemIDStr, "\t\"%d\": {\n", itemID);
-						fwrite(itemIDStr, itemIDSize, 1, file);
-
-						for (int j = 0; j < size2; j++)
-						{
-							int modeFlag = *((unsigned char*)((char*)packetBuffer + offset)); offset++;
-							int dropRate = *((unsigned long*)((char*)packetBuffer + offset)); offset += 4;
-							int enhanceProbability = *((unsigned long*)((char*)packetBuffer + offset)); offset += 4;
-
-							char modeFlagStr[16];
-							int modeFlagSize = sprintf_s(modeFlagStr, "\t\t\"%d\": {\n", modeFlag);
-							fwrite(modeFlagStr, modeFlagSize, 1, file);
-
-							char dropRateStr[32];
-							int dropRateSize = sprintf_s(dropRateStr, "\t\t\t\"DropRate\": %d,\n", dropRate);
-							fwrite(dropRateStr, dropRateSize, 1, file);
-
-							char enhanceProbabilityStr[32];
-							int enhanceProbabilitySize = sprintf_s(enhanceProbabilityStr, "\t\t\t\"EnhanceProbability\": %d\n", enhanceProbability);
-							fwrite(enhanceProbabilityStr, enhanceProbabilitySize, 1, file);
-
-							fwrite("\t\t}", 3, 1, file);
-
-							if (size2 - 1 != j)
-								fwrite(",", 1, 1, file);
-
-							fwrite("\n", 1, 1, file);
-						}
-
-						fwrite("\t}", 2, 1, file);
-
-						if (size - 1 != i)
-							fwrite(",", 1, 1, file);
-
-						fwrite("\n", 1, 1, file);
-					}
-
-					fwrite("}", 1, 1, file);
-					break;
-				}
-				case 65:
-				{
-					fwrite("{\n\t\"Version\": 1,\n\t\"VoxelConfigList\": [\n", 39, 1, file);
-
-					int offset = 1;
-					int size = *((unsigned char*)((char*)packetBuffer + offset)); offset++;
-
-					for (int i = 0; i < size; i++)
-					{
-						int id = *((unsigned char*)((char*)packetBuffer + offset)); offset++;
-						std::string vxlURL = readStr((char*)packetBuffer, offset); offset += vxlURL.size() + 1;
-						std::string vmgURL = readStr((char*)packetBuffer, offset); offset += vmgURL.size() + 1;
-
-						char idStr[18];
-						int idStrSize = sprintf_s(idStr, "\t\t{\n\t\t\t\"ID\": %d,", id);
-						fwrite(idStr, idStrSize, 1, file);
-
-						fwrite("\n\t\t\t\"VxlURL\": \"", 15, 1, file);
-						fwrite(vxlURL.c_str(), vxlURL.size(), 1, file);
-						fwrite("\",\n\t\t\t\"VmgURL\": \"", 17, 1, file);
-						fwrite(vmgURL.c_str(), vmgURL.size(), 1, file);
-						fwrite("\",\n\t\t\t\"HTTPIPList\": [\n", 22, 1, file);
-
-						int size2 = *((unsigned char*)((char*)packetBuffer + offset)); offset++;
-
-						for (int j = 0; j < size2; j++)
-						{
-							std::string httpIP = readStr((char*)packetBuffer, offset); offset += httpIP.size() + 1;
-
-							fwrite("\t\t\t\t{\n\t\t\t\t\t\"IP\": \"", 18, 1, file);
-							fwrite(httpIP.c_str(), httpIP.size(), 1, file);
-							fwrite("\",\n\t\t\t\t\t\"Ports\": [", 18, 1, file);
-
-							int size3 = *((unsigned char*)((char*)packetBuffer + offset)); offset++;
-
-							for (int k = 0; k < size3; k++)
-							{
-								int port = *((unsigned short*)((char*)packetBuffer + offset)); offset += 2;
-								
-								char portStr[7];
-								int portStrSize = sprintf_s(portStr, " %d", port);
-								fwrite(portStr, portStrSize, 1, file);
-
-								if (size3 - 1 != k)
-									fwrite(",", 1, 1, file);
-							}
-
-							fwrite(" ]\n\t\t\t\t}", 8, 1, file);
-
-							if (size2 - 1 != j)
-								fwrite(",", 1, 1, file);
-
-							fwrite("\n", 1, 1, file);
-						}
-
-						fwrite("\t\t\t]\n\t\t}", 8, 1, file);
-
-						if (size - 1 != i)
-							fwrite(",", 1, 1, file);
-
-						fwrite("\n", 1, 1, file);
-					}
-
-					fwrite("\t]\n}", 4, 1, file);
-					break;
-				}
-				}
-				fclose(file);
+				fwrite(packetBuffer, packetSize, 1, file);
 			}
-			break;
-		}
-		case binMetadata:
-		{
-			if (metaDataName)
-				sprintf_s(name, "MetadataDump/Metadata_%s.bin", metaDataName);
-			else
-				sprintf_s(name, "MetadataDump/Metadata_Unk%d.bin", metaDataID);
-			break;
-		}
-		}
-
-		if (metaDataType != binToJsonMetadata)
-		{
-			if (metaDataType == zipMetadata && (*((unsigned char*)((char*)packetBuffer + 1)) != 0x5 && *((unsigned char*)((char*)packetBuffer + 1)) != 0x1)) // 0x5 - Full zip, 0x1 - First part, 0x2 - Second part, 0x3 - Third part, 0x4 - Last part
-			{
-				file = fopen(name, "ab");
-			}
-			else
-			{
-				file = fopen(name, "wb");
-			}
-
-			if (!file)
-			{
-				printf("Can't open '%s' file to write metadata dump\n", name);
-			}
-			else
-			{
-				if (metaDataType == zipMetadata)
-				{
-					fwrite(((char*)packetBuffer + 4), *((unsigned short*)((char*)packetBuffer + 2)), 1, file);
-				}
-				else
-				{
-					fwrite(packetBuffer, packetSize, 1, file);
-				}
-				fclose(file);
-			}
+			fclose(file);
 		}
 	}
 
-	if (g_bWriteMetadata && metaDataType == zipMetadata)
+	if (g_bWriteMetadata && metaDataName != NULL)
 	{
 		HZIP hMetaData = CreateZip(0, MAX_ZIP_SIZE, ZIP_MEMORY);
 
 		if (!hMetaData)
 		{
 			printf("CreateZip returned NULL.\n");
-			return g_pfnPacket_Metadata_Parse(ptr, packetBuffer, packetSize);
+			return g_pfnPacket_Metadata_Parse(_this, packetBuffer, packetSize);
 		}
 
 		char path[MAX_PATH];
 		sprintf(path, "Metadata/%s", metaDataName);
-		printf("Writing metadata from %s\n", path);
+		printf("%s\n", path);
 
 		if (ZipAdd(hMetaData, metaDataName, path, 0, ZIP_FILENAME))
 		{
 			printf("ZipAdd returned error.\n");
-			return g_pfnPacket_Metadata_Parse(ptr, packetBuffer, packetSize);
+			return g_pfnPacket_Metadata_Parse(_this, packetBuffer, packetSize);
 		}
 
-		void* buffer;
+		void* buffer = NULL;
 		unsigned long length = 0;
 		ZipGetMemory(hMetaData, &buffer, &length);
 
-		if (length == 0)
+		if (!buffer || length == 0)
 		{
 			printf("ZipGetMemory returned zero length.\n");
-			return g_pfnPacket_Metadata_Parse(ptr, packetBuffer, packetSize);
+			return g_pfnPacket_Metadata_Parse(_this, packetBuffer, packetSize);
 		}
 
 		std::vector<unsigned char> destBuffer;
 		std::vector<unsigned char> metaDataBuffer((char*)buffer, (char*)buffer + length);
 
 		destBuffer.push_back(metaDataID);
-		destBuffer.push_back(0x05);
 		destBuffer.push_back((unsigned char)(length & 0xFF));
 		destBuffer.push_back((unsigned char)(length >> 8));
 		destBuffer.insert(destBuffer.end(), metaDataBuffer.begin(), metaDataBuffer.end());
 
 		CloseZip(hMetaData);
 
-		return g_pfnPacket_Metadata_Parse(ptr, static_cast<void*>(destBuffer.data()), destBuffer.size());
+		return g_pfnPacket_Metadata_Parse(_this, static_cast<void*>(destBuffer.data()), destBuffer.size());
 	}
 
-	return g_pfnPacket_Metadata_Parse(ptr, packetBuffer, packetSize);
+	return g_pfnPacket_Metadata_Parse(_this, packetBuffer, packetSize);
 }
 
-void Metadata_RequestAll()
+int counter = 0;
+void DumpPacket(const char* packetName, void* packetBuffer, int packetSize)
 {
-	std::vector<unsigned char> destBuffer;
+	//char subType = *(char*)packetBuffer;
 
-	for (int i = 0; i < 66; i++)
+	CreateDirectory(packetName, NULL);
+
+	char name[MAX_PATH];
+	sprintf_s(name, "%s/%s_%d.bin", packetName, packetName, counter++);
+
+	FILE* file = fopen(name, "wb");
+	if (file)
 	{
-		destBuffer.push_back(0xFF);
-		destBuffer.push_back(i);
-
-		for (int j = 0; j < 16; j++)
-			destBuffer.push_back(0x00);
-
-		g_pfnPacket_Metadata_Parse(g_pPacketMetadataParse, static_cast<void*>(destBuffer.data()), destBuffer.size());
-		destBuffer.clear();
+		fwrite(packetBuffer, packetSize, 1, file);
+		fclose(file);
+	}
+	else
+	{
+		printf("Can't open '%s' file to write %s dump\n", name, packetName);
 	}
 }
 
-int __fastcall Hook_Packet_Hack_Parse(void* _this, int a2, void* packetBuffer, int packetSize)
+int __fastcall Packet_Quest_Parse(Packet* _this, int a2, void* packetBuffer, int packetSize)
+{
+	DumpPacket("Quest", packetBuffer, packetSize);
+	return g_pfnPacket_Quest_Parse(_this, packetBuffer, packetSize);
+}
+
+int __fastcall Packet_UMsg_Parse(Packet* _this, int a2, void* packetBuffer, int packetSize)
+{
+	DumpPacket("UMsg", packetBuffer, packetSize);
+	return g_pfnPacket_UMsg_Parse(_this, packetBuffer, packetSize);
+}
+
+int __fastcall Packet_Alarm_Parse(Packet* _this, int a2, void* packetBuffer, int packetSize)
+{
+	DumpPacket("Alarm", packetBuffer, packetSize);
+	return g_pfnPacket_Alarm_Parse(_this, packetBuffer, packetSize);
+}
+
+int __fastcall Packet_Item_Parse(Packet* _this, int a2, void* packetBuffer, int packetSize)
+{
+	DumpPacket("Item", packetBuffer, packetSize);
+	return g_pfnPacket_Item_Parse(_this, packetBuffer, packetSize);
+}
+
+int __fastcall Packet_Crypt_Parse(Packet* _this, int a2, void* packetBuffer, int packetSize)
+{
+	DumpPacket("Crypt", packetBuffer, packetSize);
+	return g_pfnPacket_Crypt_Parse(_this, packetBuffer, packetSize);
+}
+
+int __fastcall Packet_Host_Parse(Packet* _this, int a2, void* packetBuffer, int packetSize)
+{
+	char subType = *(char*)packetBuffer;
+	printf("%d\n", subType);
+	if (subType == 1 || subType == 5)
+	{
+		// replace packet buffer with our modified
+		return false;
+	}
+
+	return g_pfnPacket_Host_Parse(_this, packetBuffer, packetSize);
+}
+
+int __fastcall Packet_Hack_Parse(Packet* _this, int a2, void* packetBuffer, int packetSize)
 {
 	return 1;
 }
@@ -1073,13 +571,12 @@ void __fastcall LoginDlg_OnCommand(void* _this, int r, const char* command)
 
 		//void* pLoginTextEntry = g_pfnPanel_FindChildByName(_this, "1");
 		//void* pPasswordTextEntry = g_pfnPanel_FindChildByName(_this, "1");
-		(*(void(__thiscall**)(DWORD*, char*, signed int))(*v3[111] + 656))(v3[111], login, 256); // textentry->GetText() // before 23.12.23 *v3[109] + 620
-		(*(void(__thiscall**)(DWORD*, char*, signed int))(*v3[112] + 656))(v3[112], password, 256);
+		(*(void(__thiscall**)(DWORD*, char*, signed int))(*v3[109] + 624))(v3[109], login, 256); // textentry->GetText() // before 23.12.23 *v3[109] + 620
+		(*(void(__thiscall**)(DWORD*, char*, signed int))(*v3[110] + 624))(v3[110], password, 256);
 
 		wchar_t buf[256];
 		swprintf(buf, L"/login %S %S", login, password);
-		if (g_pChattingManager)
-			g_pChattingManager->PrintToChat(1, buf);
+		g_pChattingManager->PrintToChat(1, buf);
 		return;
 	}
 	else if (!strcmp(command, "Register"))
@@ -1088,13 +585,12 @@ void __fastcall LoginDlg_OnCommand(void* _this, int r, const char* command)
 		char login[256];
 		char password[256];
 
-		(*(void(__thiscall**)(DWORD*, char*, signed int))(*v3[111] + 656))(v3[111], login, 256); // textentry->GetText()
-		(*(void(__thiscall**)(DWORD*, char*, signed int))(*v3[112] + 656))(v3[112], password, 256);
+		(*(void(__thiscall**)(DWORD*, char*, signed int))(*v3[109] + 624))(v3[109], login, 256); // textentry->GetText()
+		(*(void(__thiscall**)(DWORD*, char*, signed int))(*v3[110] + 624))(v3[110], password, 256);
 
 		wchar_t buf[256];
 		swprintf(buf, L"/register %S %S", login, password);
-		if (g_pChattingManager)
-			g_pChattingManager->PrintToChat(1, buf);
+		g_pChattingManager->PrintToChat(1, buf);
 		return;
 	}
 
@@ -1104,78 +600,88 @@ void __fastcall LoginDlg_OnCommand(void* _this, int r, const char* command)
 bool bShowLoginDlg = false;
 int __fastcall GameUI_RunFrame(void* _this)
 {
-	if (!bShowLoginDlg && !g_bDisableAuthUI)
+	if (!bShowLoginDlg)
 	{
-		__try
+		if (strlen(g_pLogin) != 0 || strlen(g_pPassword) != 0)
 		{
-			void* pCSOMainPanel = **((void***)(FindPattern(CSOMAINPANEL_PTR_SIG_CSNZ, CSOMAINPANEL_PTR_MASK_CSNZ, g_dwGameUIBase, g_dwGameUIBase + g_dwGameUISize, 2)));
-			if (!pCSOMainPanel)
-			{
-				MessageBox(NULL, "pCSOMainPanel == NULL!!!\nUse -disableauthui parameter to disable VGUI login dialog", "Error", MB_OK);
-				bShowLoginDlg = true;
-				return g_pfnGameUI_RunFrame(_this);
-			}
-
-			DWORD dwPanel_FindChildByNameRelAddr = FindPattern(CALL_PANEL_FINDCHILDBYNAME_SIG_CSNZ, CALL_PANEL_FINDCHILDBYNAME_MASK_CSNZ, g_dwGameUIBase, g_dwGameUIBase + g_dwGameUISize, 1);
-			if (!dwPanel_FindChildByNameRelAddr)
-			{
-				MessageBox(NULL, "dwPanel_FindChildByNameRelAddr == NULL!!!\nUse -disableauthui parameter to disable VGUI login dialog", "Error", MB_OK);
-				bShowLoginDlg = true;
-				return g_pfnGameUI_RunFrame(_this);
-			}
-				
-			g_pfnPanel_FindChildByName = (tPanel_FindChildByName)(dwPanel_FindChildByNameRelAddr + 4 + *(DWORD*)dwPanel_FindChildByNameRelAddr);
-			if (!g_pfnPanel_FindChildByName)
-			{
-				MessageBox(NULL, "g_pfnPanel_FindChildByName == NULL!!!\nUse -disableauthui parameter to disable VGUI login dialog", "Error", MB_OK);
-				bShowLoginDlg = true;
-				return g_pfnGameUI_RunFrame(_this);
-			}
-
-			void* pLoginDlg = *(void**)((DWORD)pCSOMainPanel + 384);
-			if (!pLoginDlg)
-			{
-				MessageBox(NULL, "pLoginDlg == NULL!!!\nUse -disableauthui parameter to disable VGUI login dialog", "Error", MB_OK);
-				bShowLoginDlg = true;
-				return g_pfnGameUI_RunFrame(_this);
-			}
-
-			VFTHook(pLoginDlg, 0, 105, LoginDlg_OnCommand, (void*&)g_pfnLoginDlg_OnCommand); // before 10.07.2024 iFuncIndex 98
-
-			void* pRegisterBtn = g_pfnPanel_FindChildByName(pLoginDlg, "RegisterBtn", false);
-			void* pFindIDBtn = g_pfnPanel_FindChildByName(pLoginDlg, "FindIDBtn", false);
-			void* pFindPWBtn = g_pfnPanel_FindChildByName(pLoginDlg, "FindPWBtn", false);
-			void* pImagePanel1 = g_pfnPanel_FindChildByName(pLoginDlg, "ImagePanel1", false);
-
-			if (!pRegisterBtn || !pFindIDBtn || !pFindPWBtn || !pImagePanel1)
-			{
-				MessageBox(NULL, "Invalid ptrs!!!\nUse -disableauthui parameter to disable VGUI login dialog", "Error", MB_OK);
-				bShowLoginDlg = true;
-				return g_pfnGameUI_RunFrame(_this);
-			}
-
-			void* v27 = (**(void* (__thiscall***)(void*))pRegisterBtn)(pRegisterBtn);
-			g_pPanel->SetPos((vgui::IPanel*)v27, 50, 141);
-			//(*(void(__stdcall**)(void*, int, int))(*(DWORD*)pRegisterBtn + 4))(pRegisterBtn, 50, 141); // button->SetPos()
-			(*(void(__thiscall**)(void*, bool))(*(DWORD*)pFindIDBtn + 168))(pFindIDBtn, false); // button->SetVisible()
-			(*(void(__thiscall**)(void*, bool))(*(DWORD*)pFindPWBtn + 168))(pFindPWBtn, false); // button->SetVisible()
-			(*(void(__thiscall**)(void*, const char*))(*(DWORD*)pRegisterBtn + 648))(pRegisterBtn, "Register"); // button->SetText() // before 23.12.23 pRegisterBtn + 604 // on 10.07.2024 pRegisterBtn + 612 // on 07.08.2024 pRegisterBtn + 620
-			//(*(void(__thiscall**)(void*, const char*))(*(DWORD*)pImagePanel1 + 600))(pImagePanel1, "resource/login.tga"); // imagepanel->SetImage()
-			(*(void(__thiscall**)(void*))(*(DWORD*)pLoginDlg + 868))(pLoginDlg); // loginDlg->DoModal() // before 23.12.23 pLoginDlg + 832 // on 10.07.2024 pLoginDlg + 840
-
-			// i lost fucking g_pfnShowLoginDlg reference...
-			/*if (g_pfnShowLoginDlg)
-			{
-				g_pfnShowLoginDlg(g_pCSOMainPanel);
-			}
-			else
-			{
-				MessageBox(NULL, "g_pfnShowLoginDlg == NULL!!!\nUse -disableauthui parameter to disable VGUI login dialog", "Error", MB_OK);
-			}*/
+			wchar_t buf[256];
+			swprintf(buf, g_bRegister ? L"/register %S %S" : L"/login %S %S", g_pLogin, g_pPassword);
+			g_pChattingManager->PrintToChat(1, buf);
 		}
-		__except (EXCEPTION_EXECUTE_HANDLER)
+
+		if (!g_bDisableAuthUI)
 		{
-			MessageBox(NULL, "Something went wrong while initializing the Auth UI!!!\nUse -disableauthui parameter to disable VGUI login dialog", "Error", MB_OK);
+			__try
+			{
+				void* pCSOMainPanel = **((void***)(FindPattern(CSOMAINPANEL_PTR_SIG_CSNZ, CSOMAINPANEL_PTR_MASK_CSNZ, g_dwGameUIBase, g_dwGameUIBase + g_dwGameUISize, 2)));
+				if (!pCSOMainPanel)
+				{
+					MessageBox(NULL, "pCSOMainPanel == NULL!!!\nUse -disableauthui parameter to disable VGUI login dialog", "Error", MB_OK);
+					bShowLoginDlg = true;
+					return g_pfnGameUI_RunFrame(_this);
+				}
+
+				DWORD dwPanel_FindChildByNameRelAddr = FindPattern(CALL_PANEL_FINDCHILDBYNAME_SIG_CSNZ, CALL_PANEL_FINDCHILDBYNAME_MASK_CSNZ, g_dwGameUIBase, g_dwGameUIBase + g_dwGameUISize, 1);
+				if (!dwPanel_FindChildByNameRelAddr)
+				{
+					MessageBox(NULL, "dwPanel_FindChildByNameRelAddr == NULL!!!\nUse -disableauthui parameter to disable VGUI login dialog", "Error", MB_OK);
+					bShowLoginDlg = true;
+					return g_pfnGameUI_RunFrame(_this);
+				}
+				
+				g_pfnPanel_FindChildByName = (tPanel_FindChildByName)(dwPanel_FindChildByNameRelAddr + 4 + *(DWORD*)dwPanel_FindChildByNameRelAddr);
+				if (!g_pfnPanel_FindChildByName)
+				{
+					MessageBox(NULL, "g_pfnPanel_FindChildByName == NULL!!!\nUse -disableauthui parameter to disable VGUI login dialog", "Error", MB_OK);
+					bShowLoginDlg = true;
+					return g_pfnGameUI_RunFrame(_this);
+				}
+
+				void* pLoginDlg = *(void**)((DWORD)pCSOMainPanel + 364);
+				if (!pLoginDlg)
+				{
+					MessageBox(NULL, "pLoginDlg == NULL!!!\nUse -disableauthui parameter to disable VGUI login dialog", "Error", MB_OK);
+					bShowLoginDlg = true;
+					return g_pfnGameUI_RunFrame(_this);
+				}
+
+				VFTHook(pLoginDlg, 0, 98, LoginDlg_OnCommand, (void*&)g_pfnLoginDlg_OnCommand);
+
+				void* pRegisterBtn = g_pfnPanel_FindChildByName(pLoginDlg, "RegisterBtn", false);
+				void* pFindIDBtn = g_pfnPanel_FindChildByName(pLoginDlg, "FindIDBtn", false);
+				void* pFindPWBtn = g_pfnPanel_FindChildByName(pLoginDlg, "FindPWBtn", false);
+				void* pImagePanel1 = g_pfnPanel_FindChildByName(pLoginDlg, "ImagePanel1", false);
+
+				if (!pRegisterBtn || !pFindIDBtn || !pFindPWBtn || !pImagePanel1)
+				{
+					MessageBox(NULL, "Invalid ptrs!!!\nUse -disableauthui parameter to disable VGUI login dialog", "Error", MB_OK);
+					bShowLoginDlg = true;
+					return g_pfnGameUI_RunFrame(_this);
+				}
+
+				void* v27 = (**(void* (__thiscall***)(void*))pRegisterBtn)(pRegisterBtn);
+				g_pPanel->SetPos((vgui::IPanel*)v27, 50, 141);
+				//(*(void(__stdcall**)(void*, int, int))(*(DWORD*)pRegisterBtn + 4))(pRegisterBtn, 50, 141); // button->SetPos()
+				(*(void(__thiscall**)(void*, bool))(*(DWORD*)pFindIDBtn + 160))(pFindIDBtn, false); // button->SetVisible()
+				(*(void(__thiscall**)(void*, bool))(*(DWORD*)pFindPWBtn + 160))(pFindPWBtn, false); // button->SetVisible()
+				(*(void(__thiscall**)(void*, const char*))(*(DWORD*)pRegisterBtn + 608))(pRegisterBtn, "Register"); // button->SetText() // before 23.12.23 pRegisterBtn + 604
+				//(*(void(__thiscall**)(void*, const char*))(*(DWORD*)pImagePanel1 + 600))(pImagePanel1, "resource/login.tga"); // imagepanel->SetImage()
+				(*(void(__thiscall**)(void*))(*(DWORD*)pLoginDlg + 836))(pLoginDlg); // loginDlg->DoModal() // before 23.12.23 pLoginDlg + 832
+
+				// i lost fucking g_pfnShowLoginDlg reference...
+				/*if (g_pfnShowLoginDlg)
+				{
+					g_pfnShowLoginDlg(g_pCSOMainPanel);
+				}
+				else
+				{
+					MessageBox(NULL, "g_pfnShowLoginDlg == NULL!!!\nUse -disableauthui parameter to disable VGUI login dialog", "Error", MB_OK);
+				}*/
+			}
+			__except (EXCEPTION_EXECUTE_HANDLER)
+			{
+				MessageBox(NULL, "Something went wrong while initializing the Auth UI!!!\nUse -disableauthui parameter to disable VGUI login dialog", "Error", MB_OK);
+			}
 		}
 		bShowLoginDlg = true;
 	}
@@ -1186,45 +692,49 @@ void CSO_Bot_Add()
 {
 	// get current botmgr ptr
 	DWORD dwBotManagerPtr = FindPattern(BOT_MANAGER_PTR_SIG_CSNZ, BOT_MANAGER_PTR_MASK_CSNZ, g_dwMpBase, g_dwMpBase + g_dwMpSize, 1);
-	if (!dwBotManagerPtr)
-	{
-		MessageBox(NULL, "dwBotManagerPtr == NULL!!!", "Error", MB_OK);
-		return;
-	}
 	g_pBotManager = **((CCSBotManager***)(dwBotManagerPtr));
+
 	if (!g_pBotManager)
 	{
-		MessageBox(NULL, "g_pBotManager == NULL!!!", "Error", MB_OK);
+		g_pEngine->Con_Printf("CSO_Bot_Add: g_pBotManager == NULL\n");
 		return;
 	}
-
-	int side = 0;
+	int arg1 = 0, arg2 = 0;
 	int argc = g_pEngine->Cmd_Argc();
 	if (argc > 0)
 	{
-		side = atoi(g_pEngine->Cmd_Argv(1));
+		arg1 = atoi(g_pEngine->Cmd_Argv(1));
+		if (argc >= 2)
+		{
+			arg2 = atoi(g_pEngine->Cmd_Argv(2));
+		}
 	}
-	g_pBotManager->Bot_Add(side);
+	g_pBotManager->Bot_Add(arg1);
 }
 
-const char* __fastcall Hook_GetSSLProtocolName(void* _this)
+const char* __fastcall GetCryptoProtocolName(void* _this)
 {
+	if (g_bUseSSL)
+	{
+		return g_pfnGetCryptoProtocolName(_this);
+	}
+
 	return "None";
 }
 
-CreateHookClassType(void*, SocketConstructor, int, int a2, int a3, char a4)
+void* __fastcall SocketConstructor(int _this, int reg, int a2, int a3, char a4)
 {
-	*(DWORD*)((int)ptr + 72) = (DWORD)g_pfnEVP_CIPHER_CTX_new();
-	*(DWORD*)((int)ptr + 76) = (DWORD)g_pfnEVP_CIPHER_CTX_new();
-	*(DWORD*)((int)ptr + 80) = (DWORD)g_pfnEVP_CIPHER_CTX_new();
-	*(DWORD*)((int)ptr + 84) = (DWORD)g_pfnEVP_CIPHER_CTX_new();
+	*(DWORD*)(_this + 72) = (DWORD)g_pfnEVP_CIPHER_CTX_new();
+	*(DWORD*)(_this + 76) = (DWORD)g_pfnEVP_CIPHER_CTX_new();
+	*(DWORD*)(_this + 80) = (DWORD)g_pfnEVP_CIPHER_CTX_new();
+	*(DWORD*)(_this + 84) = (DWORD)g_pfnEVP_CIPHER_CTX_new();
 
-	return g_pfnSocketConstructor(ptr, a2, a3, a4);
+	return g_pfnSocketConstructor(_this, a2, a3, a4);
 }
 
-CreateHookClass(int, ReadPacket, char* outBuf, int len, unsigned short* outLen, bool initialMsg)
+int __fastcall Socket_Read(void* _this, int reg, char* outBuf, int len, unsigned short *outLen, bool initialMsg)
 {
-	int result = g_pfnReadPacket(ptr, outBuf, len, outLen, initialMsg);
+	int result = g_pfnSocket_Read(_this, outBuf, len, outLen, initialMsg);
 
 	// this + 0x34 - read buf
 
@@ -1260,7 +770,7 @@ CreateHookClass(int, ReadPacket, char* outBuf, int len, unsigned short* outLen, 
 		static int packetCounter = 0;
 
 		char filename[MAX_PATH];
-		bool moreInfo = true;
+		bool moreInfo = false;
 		if (moreInfo)
 			snprintf(filename, sizeof(filename), "Packets/%d/Packet_%d_ID_%d_%d.bin", directoryCounter, packetCounter++, buf[0], dataLen);
 		else
@@ -1274,126 +784,38 @@ CreateHookClass(int, ReadPacket, char* outBuf, int len, unsigned short* outLen, 
 	return result;
 }
 
-CreateHookClass(void, LogToErrorLog, int logFileId, char* buffer, int size)
+CreateHook(__cdecl, void, LogToErrorLog, void* pLogFile, char* fmt, ...)
 {
-	printf("[%s.log] %.*s", logFileId == 3 ? "Error" : "nxa", size, buffer);
+	char outputString[4096];
 
-	if (buffer[strlen(buffer) - 1] != '\n')
-		printf("\n");
+	va_list va;
+	va_start(va, fmt);
+	_vsnprintf_s(outputString, sizeof(outputString), _TRUNCATE, fmt, va);
+	outputString[4095] = 0;
+	va_end(va);
 
-	g_pfnLogToErrorLog(ptr, logFileId, buffer, size);
+	printf("[LogToErrorLog] %s", outputString);
+
+	g_pfnLogToErrorLog(pLogFile, "%s", outputString);
 }
 
 CreateHook(WINAPI, void, OutputDebugStringA, LPCSTR lpOutString)
 {
-	printf("[OutputDebugString] %s", lpOutString);
-
-	if (lpOutString[strlen(lpOutString) - 1] != '\n')
-		printf("\n");
-
-	g_pfnOutputDebugStringA(lpOutString);
+	printf("[OutputDebugString] %s\n", lpOutString);
 }
 
-CreateHook(__stdcall, int, Packet_Login_Send, DWORD** username, DWORD** password, const void** a3)
+CreateHook(__cdecl, int, HolePunch__GetUserSocketInfo, int userID, char* data)
 {
-	if (g_pUsername && g_pPassword)
-	{
-		wchar_t buf[256];
-		swprintf(buf, L"/login %S %S", g_pUsername, g_pPassword);
-		if (g_pChattingManager)
-			g_pChattingManager->PrintToChat(1, buf);
-	}
+	auto ret = g_pfnHolePunch__GetUserSocketInfo(userID, data);
 
-	return g_pfnPacket_Login_Send(username, password, a3);
-}
+	data[0] = 2; // unsafety method, since other places port are corrected
 
-DWORD GetLauncherCompilationTime()
-{
-	char exePath[MAX_PATH]{};
-	if (!GetModuleFileNameA(nullptr, exePath, MAX_PATH))
-		return 0;
+	short port = (short&)data[14];
+	in_addr ip = (in_addr&)data[16];
 
-	char* lastSlash = strrchr(exePath, '\\');
-	if (!lastSlash)
-		return 0;
+	printf("[HolePunch__GetUserSocketInfo] ret: %d | UserID: %d, %s:%d\n", ret, userID, inet_ntoa(ip), ntohs(port));
 
-	*(lastSlash + 1) = '\0';
-
-	strcat_s(exePath, "cstrike-online.exe");
-
-	HANDLE hFile = CreateFileA(
-		exePath,
-		GENERIC_READ,
-		FILE_SHARE_READ,
-		nullptr,
-		OPEN_EXISTING,
-		FILE_ATTRIBUTE_NORMAL,
-		nullptr
-	);
-
-	if (hFile == INVALID_HANDLE_VALUE)
-		return 0;
-
-	HANDLE hMapping = CreateFileMappingA(
-		hFile,
-		nullptr,
-		PAGE_READONLY,
-		0,
-		0,
-		nullptr
-	);
-
-	if (!hMapping)
-	{
-		CloseHandle(hFile);
-		return 0;
-	}
-
-	LPVOID base = MapViewOfFile(
-		hMapping,
-		FILE_MAP_READ,
-		0,
-		0,
-		0
-	);
-
-	if (!base)
-	{
-		CloseHandle(hMapping);
-		CloseHandle(hFile);
-		return 0;
-	}
-
-	DWORD timestamp = 0;
-
-	auto dos = (PIMAGE_DOS_HEADER)base;
-	if (dos->e_magic == IMAGE_DOS_SIGNATURE)
-	{
-		auto nt = (PIMAGE_NT_HEADERS)((BYTE*)base + dos->e_lfanew);
-		if (nt->Signature == IMAGE_NT_SIGNATURE)
-		{
-			timestamp = nt->FileHeader.TimeDateStamp;
-		}
-	}
-
-	UnmapViewOfFile(base);
-	CloseHandle(hMapping);
-	CloseHandle(hFile);
-	return timestamp;
-}
-
-CreateHook(__cdecl, DWORD, GetPECompilationTime, const char* moduleName)
-{
-	if (strcmp(moduleName, "cstrike-online.exe") == 0)
-		return GetLauncherCompilationTime();
-	else
-		return g_pfnGetPECompilationTime(moduleName);
-}
-
-CreateHookClass(int, CMapEntityManager)
-{
-	*g_pFreezeTime = 20;
-	return g_pfnCMapEntityManager(ptr);
+	return ret;
 }
 
 void CreateDebugConsole()
@@ -1413,7 +835,7 @@ void CreateDebugConsole()
 
 DWORD WINAPI HookThread(LPVOID lpThreadParameter)
 {
-	hWnd = FindWindow(NULL, "Counter-Strike Nexon");
+	hWnd = FindWindow(NULL, "Counter-Strike Nexon: Studio");
 	oWndProc = (WNDPROC)SetWindowLongPtr(hWnd, GWLP_WNDPROC, (LONG_PTR)WndProc);
 
 	if (!g_bUseOriginalServer)
@@ -1423,14 +845,12 @@ DWORD WINAPI HookThread(LPVOID lpThreadParameter)
 			g_dwGameUIBase = (DWORD)GetModuleHandle("gameui.dll");
 			Sleep(500);
 		}
+
 		g_dwGameUISize = GetModuleSize(GetModuleHandle("gameui.dll"));
 
-		if (g_pEngine)
-		{
-			g_pChattingManager = g_pEngine->GetChatManager();
-			if (!g_pChattingManager)
-				MessageBox(NULL, "g_pChattingManager == NULL!!!", "Error", MB_OK);
-		}
+		g_pChattingManager = g_pEngine->GetChatManager();
+		if (!g_pChattingManager)
+			MessageBox(NULL, "g_pChattingManager == NULL!!!", "Error", MB_OK);
 
 		CreateInterfaceFn gameui_factory = CaptureFactory("gameui.dll");
 		CreateInterfaceFn vgui2_factory = CaptureFactory("vgui2.dll");
@@ -1446,104 +866,52 @@ DWORD WINAPI HookThread(LPVOID lpThreadParameter)
 		g_dwMpSize = GetModuleSize(GetModuleHandle("mp.dll"));
 
 		{
-			DWORD pushStr = 0;
-			BYTE patch[] = { 0x90, 0x90, 0x90, 0x90, 0x90, 0x90, 0x90, 0x90, 0x90, 0x90, 0x90, 0x90, 0x90, 0x90 };
+			// NOP IsDedi() function to load allstar Skill/Status csv
+			DWORD pushStr = FindPush(g_dwMpBase, g_dwMpBase + g_dwMpSize, (PCHAR)("Failed to Open AllStar_Skill-Dedi Table"));
+			// call FF 15
+			// test 85
+			// jz 0F 84
+			// cmp 80 7D
+			// 90 90 90 90 90 90 90 90 90 90 90 90 90 90 80 7D
+			DWORD patchAddr = pushStr - 0x1B;
+			unsigned char patch[] = { 0x90, 0x90, 0x90, 0x90, 0x90, 0x90, 0x90, 0x90, 0x90, 0x90, 0x90, 0x90, 0x90, 0x90 };
+			WriteMemory((void*)patchAddr, (BYTE*)patch, 14);
 
-			// NOP IsDedi() function to load allstar Skill csv
-			pushStr = FindPush(g_dwMpBase, g_dwMpBase + g_dwMpSize, (PCHAR)("Failed to Open AllStar_Skill-Dedi Table"));
-			if (!pushStr)
-				MessageBox(NULL, "AllStar_Skill_Patch == NULL!!!", "Error", MB_OK);
-			else
-			{
-				pushStr -= 0x1B;
-				WriteMemory((void*)pushStr, (BYTE*)patch, sizeof(patch));
-			}
-
-			// NOP IsDedi() function to load allstar Status csv
 			pushStr = FindPush(g_dwMpBase, g_dwMpBase + g_dwMpSize, (PCHAR)("Failed to Open AllStar_Status-Dedi Table"));
-			if (!pushStr)
-				MessageBox(NULL, "AllStar_Status_Patch == NULL!!!", "Error", MB_OK);
-			else
-			{
-				pushStr -= 0x1E;
-				WriteMemory((void*)pushStr, (BYTE*)patch, sizeof(patch));
-			}
-
-			// NOP IsDedi() function to spawn zsht_item_box and zbsitem
-			pushStr = FindPush(g_dwMpBase, g_dwMpBase + g_dwMpSize, (PCHAR)("zsht_item_box"), 3);
-			if (!pushStr)
-				MessageBox(NULL, "ZBS_ZSHT_ItemBox_Patch == NULL!!!", "Error", MB_OK);
-			else
-			{
-				pushStr -= 0x4F5;
-				WriteMemory((void*)pushStr, (BYTE*)patch, sizeof(patch));
-			}
-
-			// Fix mp_freezetime for modes that start with 20 seconds
-			pushStr = FindPush(g_dwMpBase, g_dwMpBase + g_dwMpSize, (PCHAR)("monster_spawn_point"), 3);
-			if (!pushStr)
-				MessageBox(NULL, "g_pFreezeTime == NULL!!!", "Error", MB_OK);
-			else
-			{
-				g_pFreezeTime = *(float**)(pushStr + 0x13);
-
-				DWORD find = FindPattern(CMAPENTITYMANAGER_SIG_CSNZ, CMAPENTITYMANAGER_MASK_CSNZ, g_dwMpBase, g_dwMpBase + g_dwMpSize, NULL);
-				if (!find)
-					MessageBox(NULL, "CMapEntityManager == NULL!!!", "Error", MB_OK);
-				else
-					InlineHook((void*)find, Hook_CMapEntityManager, (void*&)g_pfnCMapEntityManager);
-			}
+			patchAddr = pushStr - 0x1E; // or 0x1B?
+			WriteMemory((void*)patchAddr, (BYTE*)patch, 14);
 		}
 
-		if (g_pEngine)
-			g_pEngine->pfnAddCommand("cso_bot_add", CSO_Bot_Add);
-
-		{
-			DWORD find = FindPattern(VOXEL_TAB_SIG_CSNZ, VOXEL_TAB_MASK_CSNZ, g_dwGameUIBase, g_dwGameUIBase + g_dwGameUISize, 2);
-			if (!find)
-				MessageBox(NULL, "Voxel_Tab == NULL!!!", "Error", MB_OK);
-			else
-			{
-				BYTE patch[] = { 0x00 };
-				WriteMemory((void*)find, (BYTE*)patch, sizeof(patch));
-			}
-		}
+		g_pEngine->pfnAddCommand("cso_bot_add", CSO_Bot_Add);
 	}
 
 	return TRUE;
 }
 
-void Init(HMODULE hEngineModule, HMODULE hFileSystemModule)
+CreateHook(__cdecl, DWORD, GetPECompilationTime, const char* moduleName)
 {
-	g_hEngineModule = hEngineModule;
-	g_dwEngineBase = GetModuleBase(g_hEngineModule);
-	g_dwEngineSize = GetModuleSize(g_hEngineModule);
+	if (!strcmp(moduleName, "cstrike-online.exe") || !strcmp(moduleName, "CSOLauncher.exe"))
+		return LEGACY_CLIENT_TIMESTAMP;
+	return g_pfnGetPECompilationTime(moduleName);
+}
+
+void Init(HMODULE hModule)
+{
+	printf("Init()\n");
 
 	if (CommandLine()->CheckParm("-debug") || CommandLine()->CheckParm("-dev") || CommandLine()->CheckParm("+developer 1") || CommandLine()->CheckParm("-developer"))
-	{
 		CreateDebugConsole();
 
-		void* find = (void*)FindPattern(LOGTOERRORLOG_SIG_CSNZ, LOGTOERRORLOG_MASK_CSNZ, g_dwEngineBase, g_dwEngineBase + g_dwEngineSize, NULL);
-		if (!find)
-			MessageBox(NULL, "LogToErrorLog == NULL!!!", "Error", MB_OK);
-		else
-			InlineHook(find, Hook_LogToErrorLog, (void*&)g_pfnLogToErrorLog);
-
-		find = GetProcAddress(GetModuleHandle("kernel32.dll"), "OutputDebugStringA");
-		if (!find)
-			MessageBox(NULL, "OutputDebugStringA == NULL!!!", "Error", MB_OK);
-		else
-			InlineHook(find, Hook_OutputDebugStringA, (void*&)g_pfnOutputDebugStringA);
-	}
-
-	printf("Init()\n");
+	g_hEngineModule = hModule;
+	g_dwEngineBase = GetModuleBase(g_hEngineModule);
+	g_dwEngineSize = GetModuleSize(g_hEngineModule);
 
 	const char* port;
 	const char* ip;
 
 	if (CommandLine()->CheckParm("-ip", &ip) && ip)
 	{
-		strncpy(g_pServerIP, ip, sizeof(g_pServerIP));
+		strncpy_s(g_pServerIP, ip, _TRUNCATE);
 	}
 	else
 	{
@@ -1552,104 +920,118 @@ void Init(HMODULE hEngineModule, HMODULE hFileSystemModule)
 
 	if (CommandLine()->CheckParm("-port", &port) && port)
 	{
-		strncpy(g_pServerPort, port, sizeof(g_pServerPort));
+		strncpy_s(g_pServerPort, port, _TRUNCATE);
 	}
 	else
 	{
 		strncpy(g_pServerPort, DEFAULT_PORT, sizeof(DEFAULT_PORT));
 	}
 
-	const char* username;
-	const char* password;
+	const char* login = NULL;
+	const char* password = NULL;
 
-	if (CommandLine()->CheckParm("-username", &username) && username)
+	g_bRegister = CommandLine()->CheckParm("-register");
+	if ((CommandLine()->CheckParm("-username", &login) || CommandLine()->CheckParm("-login", &login)) && login)
 	{
-		strncpy(g_pUsername, username, sizeof(g_pUsername));
-		printf("g_pUsername = %s\n", g_pUsername);
+		strncpy_s(g_pLogin, login, _TRUNCATE);
 	}
 	if (CommandLine()->CheckParm("-password", &password) && password)
 	{
-		strncpy(g_pPassword, password, sizeof(g_pPassword));
-		printf("g_pPassword = %s\n", g_pPassword);
+		strncpy_s(g_pPassword, password, _TRUNCATE);
 	}
 
 	g_bUseOriginalServer = CommandLine()->CheckParm("-useoriginalserver");
 	g_bDumpMetadata = CommandLine()->CheckParm("-dumpmetadata");
 	g_bIgnoreMetadata = CommandLine()->CheckParm("-ignoremetadata");
+	g_bDumpQuest = CommandLine()->CheckParm("-dumpquest");
+	g_bDumpUMsg = CommandLine()->CheckParm("-dumpumsg");
+	g_bDumpAlarm = CommandLine()->CheckParm("-dumpalarm");
+	g_bDumpItem = CommandLine()->CheckParm("-dumpitem");
 	g_bDumpAll = CommandLine()->CheckParm("-dumpall");
+	g_bDumpCrypt = CommandLine()->CheckParm("-dumpcrypt");
 	g_bDisableAuthUI = CommandLine()->CheckParm("-disableauthui");
+	g_bDumpUDP = CommandLine()->CheckParm("-dumpudp");
 	g_bUseSSL = CommandLine()->CheckParm("-usessl");
 	g_bWriteMetadata = CommandLine()->CheckParm("-writemetadata");
-	g_bLoadDediFromFile = CommandLine()->CheckParm("-loaddedifromfile");
+	g_bLoadZBSkillFromFile = CommandLine()->CheckParm("-loadzbskillfromfile");
 	g_bNoNGHook = CommandLine()->CheckParm("-nonghook");
 
 	printf("g_pServerIP = %s, g_pServerPort = %s\n", g_pServerIP, g_pServerPort);
 }
 
-void Hook(HMODULE hEngineModule, HMODULE hFileSystemModule)
+void Hook(HMODULE hModule)
 {
-	Init(hEngineModule, hFileSystemModule);
+	Init(hModule);
 
-	DWORD find = NULL;
 	void* dummy = NULL;
 	
 	if (!g_bNoNGHook)
 	{
-		find = FindPattern(NGCLIENT_INIT_SIG_CSNZ, NGCLIENT_INIT_MASK_CSNZ, g_dwEngineBase, g_dwEngineBase + g_dwEngineSize, 0x11);
+		DWORD find = FindPattern("\xE8\x00\x00\x00\x00\x84\xC0\x75\x00\xE8\x00\x00\x00\x00\x33\xC0", "x????xxx?x????xx", g_dwEngineBase, g_dwEngineBase + g_dwEngineSize, NULL);
 		if (!find)
 			MessageBox(NULL, "NGClient_Init == NULL!!!", "Error", MB_OK);
 		else
 			InlineHookFromCallOpcode((void*)find, NGClient_Return1, dummy, dummy);
 
-		find = FindPattern(NGCLIENT_QUIT_SIG_CSNZ, NGCLIENT_QUIT_MASK_CSNZ, g_dwEngineBase, g_dwEngineBase + g_dwEngineSize, NULL);
+		find = FindPattern("\xE8\x00\x00\x00\x00\x33\xC0\xE9\x00\x00\x00\x00\xEB", "x????xxx????x", g_dwEngineBase, g_dwEngineBase + g_dwEngineSize, NULL);
 		if (!find)
 			MessageBox(NULL, "NGClient_Quit == NULL!!!", "Error", MB_OK);
 		else
-			InlineHook((void*)find, NGClient_Return17238, dummy);
+			InlineHookFromCallOpcode((void*)find, NGClient_Void, dummy, dummy);
 
-		find = FindPattern(PACKET_HACK_SEND_SIG_CSNZ, PACKET_HACK_SEND_MASK_CSNZ, g_dwEngineBase, g_dwEngineBase + g_dwEngineSize, NULL);
+		find = FindPattern("\xE8\x00\x00\x00\x00\xE8\x00\x00\x00\x00\xEB\x00\x43\x56\x20\x20\x0D", "x????x????x?xxxxx", g_dwEngineBase, g_dwEngineBase + g_dwEngineSize, NULL);
 		if (!find)
 			MessageBox(NULL, "Packet_Hack_Send == NULL!!!", "Error", MB_OK);
 		else
 		{
-			InlineHookFromCallOpcode((void*)find, NGClient_Return17238, dummy, dummy);
-			InlineHookFromCallOpcode((void*)(find + 0x5), NGClient_Return17238, dummy, dummy);
+			InlineHookFromCallOpcode((void*)find, NGClient_Void, dummy, dummy);
+			InlineHookFromCallOpcode((void*)(find + 0x5), NGClient_Return1, dummy, dummy);
 		}
 
-		find = FindPattern(PACKET_HACK_PARSE_SIG_CSNZ, PACKET_HACK_PARSE_MASK_CSNZ, g_dwEngineBase, g_dwEngineBase + g_dwEngineSize, NULL);
+		find = FindPattern(PACKET_HACK_SIG, PACKET_HACK_MASK, g_dwEngineBase, g_dwEngineBase + g_dwEngineSize, NULL);
 		if (!find)
-			MessageBox(NULL, "Packet_Hack_Parse == NULL!!!", "Error", MB_OK);
+			MessageBox(NULL, "Packet_Hack_Receive == NULL!!!", "Error", MB_OK);
 		else
-			InlineHook((void*)find, Hook_Packet_Hack_Parse, dummy);
+			InlineHook((void*)find, Packet_Hack_Parse, dummy);
+	}
+
+	IATHook(g_hEngineModule, "nxgsm.dll", "InitializeGameLogManagerA", NXGSM_Dummy, dummy);
+	IATHook(g_hEngineModule, "nxgsm.dll", "WriteStageLogA", NXGSM_WriteStageLogA, dummy);
+	IATHook(g_hEngineModule, "nxgsm.dll", "WriteErrorLogA", NXGSM_WriteErrorLogA, dummy);
+	IATHook(g_hEngineModule, "nxgsm.dll", "FinalizeGameLogManager", NXGSM_Dummy, dummy);
+	IATHook(g_hEngineModule, "nxgsm.dll", "SetUserSN", NXGSM_Dummy, dummy);
+	if (g_bDumpUDP)
+	{
+		//InlineHook(GetProcAddress(GetModuleHandleA("WSOCK32.dll"), "recvfrom"), h_Recvfrom, (void*&)g_pfnRecvfrom);
+		//InlineHook(GetProcAddress(GetModuleHandleA("WSOCK32.dll"), "sendto"), h_Sendto, (void*&)g_pfnSendto);
 	}
 
 	if (!g_bUseOriginalServer)
 	{
-		IATHook(g_hEngineModule, "nxgsm.dll", "InitializeGameLogManagerA", NXGSM_Dummy, dummy);
-		IATHook(g_hEngineModule, "nxgsm.dll", "WriteStageLogA", NXGSM_WriteStageLogA, dummy);
-		IATHook(g_hEngineModule, "nxgsm.dll", "WriteErrorLogA", NXGSM_WriteErrorLogA, dummy);
-		IATHook(g_hEngineModule, "nxgsm.dll", "FinalizeGameLogManager", NXGSM_Dummy, dummy);
-		IATHook(g_hEngineModule, "nxgsm.dll", "SetUserSN", NXGSM_Dummy, dummy);
-
-		find = FindPattern(SOCKETMANAGER_SIG_CSNZ, SOCKETMANAGER_MASK_CSNZ, g_dwEngineBase, g_dwEngineBase + g_dwEngineSize, NULL);
-		if (!find)
-			MessageBox(NULL, "SocketManagerConstructor == NULL!!!", "Error", MB_OK);
+		DWORD dwCallSocketMgrInitAddr = FindPattern(SOCKETMANAGER_SIG_CSNZ23, SOCKETMANAGER_MASK_CSNZ23, g_dwEngineBase, g_dwEngineBase + g_dwEngineSize, NULL);
+		if (!dwCallSocketMgrInitAddr)
+			MessageBox(NULL, "dwCallSocketMgrInitAddr == NULL!!!", "Error", MB_OK);
 		else
-			InlineHook((void*)find, Hook_SocketManagerConstructor, (void*&)g_pfnSocketManagerConstructor);
+			InlineHookFromCallOpcode((void*)dwCallSocketMgrInitAddr, SockMgr, (void*&)g_pfnSocketManagerConstructor, dummy);
 
-		find = FindPattern(SERVERCONNECT_SIG_CSNZ, SERVERCONNECT_MASK_CSNZ, g_dwEngineBase, g_dwEngineBase + g_dwEngineSize, NULL);
-		if (!find)
-			MessageBox(NULL, "ServerConnect == NULL!!!", "Error", MB_OK);
+		g_pServerConnect = (void*)FindPattern(SERVERCONNECT_SIG_CSNZ2019, SERVERCONNECT_MASK_CSNZ2019, g_dwEngineBase, g_dwEngineBase + g_dwEngineSize, NULL);
+		if (!g_pServerConnect)
+			MessageBox(NULL, "g_pServerConnect == NULL!!!", "Error", MB_OK);
 		else
-			InlineHookFromCallOpcode((void*)find, Hook_ServerConnect, (void*&)g_pfnServerConnect, dummy);
+			InlineHook(g_pServerConnect, Hook_ServerConnect, (void*&)g_pfnServerConnect);
 
-		find = FindPattern(HOLEPUNCH_SETSERVERINFO_SIG_CSNZ, HOLEPUNCH_SETSERVERINFO_MASK_CSNZ, g_dwEngineBase, g_dwEngineBase + g_dwEngineSize, NULL);
+		auto find = (void*)FindPattern("\x55\x8B\xEC\xB8\x00\x00\x00\x00\x66\xA3", "xxxx????xx", g_dwEngineBase, g_dwEngineBase + g_dwEngineSize, NULL);
 		if (!find)
-			MessageBox(NULL, "HolePunch_SetServerInfo == NULL!!!", "Error", MB_OK);
+			MessageBox(NULL, "HolePunch__SetServerInfo == NULL!!!", "Error", MB_OK);
 		else
-			InlineHook((void*)find, Hook_HolePunch_SetServerInfo, (void*&)g_pfnHolePunch_SetServerInfo);
+			InlineHook(find, Hook_HolePunch__SetServerInfo, (void*&)g_pfnHolePunch__SetServerInfo);
 
-		/*
+		find = (void*)FindPattern("\x55\x8B\xEC\x83\xEC\x00\x57\x8B\x7D\x00\x85\xFF\x75\x00\x8B\x45", "xxxxx?xxx?xxx?xx", g_dwEngineBase, g_dwEngineBase + g_dwEngineSize, NULL);
+		if (!find)
+			MessageBox(NULL, "HolePunch__GetUserSocketInfo == NULL!!!", "Error", MB_OK);
+		else
+			InlineHook(find, Hook_HolePunch__GetUserSocketInfo, (void*&)g_pfnHolePunch__GetUserSocketInfo);
+
 		{
 			DWORD pushStr = FindPush(g_dwEngineBase, g_dwEngineBase + g_dwEngineSize, (PCHAR)("resource/zombi/ZombieSkillTable_Dedi.csv"));
 			
@@ -1672,147 +1054,140 @@ void Hook(HMODULE hEngineModule, HMODULE hFileSystemModule)
 				MessageBox(NULL, "Failed to patch zombie skill table", "Error", MB_OK);
 			}
 		}
-		*/
-
-		{
-			// NOP dedi check on Zombie Skills
-			find = FindPush(g_dwEngineBase, g_dwEngineBase + g_dwEngineSize, (PCHAR)("resource/zombi/ZombieSkillProperty_Dedi/ZombieSkillProperty_Crazy.csv"));
-			if (!find)
-				MessageBox(NULL, "ZombieSkillProperty_Patch == NULL!!!", "Error", MB_OK);
-			else
-			{
-				find -= 0x30;
-				BYTE patch[] = { 0x90, 0x90, 0x90, 0x90, 0x90, 0x90, 0x90, 0xEB, 0x07 };
-				WriteMemory((void*)find, (BYTE*)patch, sizeof(patch));
-			}
-
-			// NOP dedi check on Fire Bomb
-			find = FindPush(g_dwEngineBase, g_dwEngineBase + g_dwEngineSize, (PCHAR)("resource/zombi/FireBombOption_Dedi.csv"));
-			if (!find)
-				MessageBox(NULL, "FireBombOption_Patch == NULL!!!", "Error", MB_OK);
-			else
-			{
-				find -= 0x8;
-				BYTE patch2[] = { 0x90, 0x90, 0x90, 0x90, 0x90, 0x90 };
-				WriteMemory((void*)find, (BYTE*)patch2, sizeof(patch2));
-			}
-
-			find = FindPattern(CREATESTRINGTABLE_SIG_CSNZ, CREATESTRINGTABLE_MASK_CSNZ, g_dwEngineBase, g_dwEngineBase + g_dwEngineSize, NULL);
-			if (!find)
-				MessageBox(NULL, "CreateStringTable == NULL!!!", "Error", MB_OK);
-			else
-			{
-				InlineHook((void*)find, Hook_CreateStringTable, (void*&)g_pfnCreateStringTable);
-
-				DWORD parseCsvCallAddr = (DWORD)find + 0x71 + 1; // 0x71
-				g_pfnParseCSV = (tParseCSV)(parseCsvCallAddr + 4 + *(DWORD*)parseCsvCallAddr);
-			}
-
-			find = FindPattern(LOADJSON_SIG_CSNZ, LOADJSON_MASK_CSNZ, g_dwEngineBase, g_dwEngineBase + g_dwEngineSize, NULL);
-			if (!find)
-				MessageBox(NULL, "LoadJson == NULL!!!", "Error", MB_OK);
-			else
-				InlineHook((void*)find, Hook_LoadJson, (void*&)g_pfnLoadJson);
-
-			// patch socket
-			find = FindPush(g_dwEngineBase, g_dwEngineBase + g_dwEngineSize, (PCHAR)("SocketManager - Max retry reached!!! Server Connection failed \n"));
-			if (!find)
-				MessageBox(NULL, "Socket_Patch == NULL!!!", "Error", MB_OK);
-			else
-			{
-				find -= 0xE;
-				BYTE patch[] = { 0x01 };
-				WriteMemory((void*)find, (BYTE*)patch, sizeof(patch));
-			}
-
-			// patch "CheckServerAlive failed"
-			find = FindPattern(CONNECTSERVER_SIG_CSNZ, CONNECTSERVER_MASK_CSNZ, g_dwEngineBase, g_dwEngineBase + g_dwEngineSize, NULL);
-			if (!find)
-				MessageBox(NULL, "CheckServerAlive_Patch == NULL!!!", "Error", MB_OK);
-			else
-			{
-				find += 0xFC;
-				BYTE patch[] = { 0x85 };
-				WriteMemory((void*)find, (BYTE*)patch, sizeof(patch));
-			}
-
-			find = FindPattern(PACKET_LOGIN_SEND_SIG_CSNZ, PACKET_LOGIN_SEND_MASK_CSNZ, g_dwEngineBase, g_dwEngineBase + g_dwEngineSize, NULL);
-			if (!find)
-				MessageBox(NULL, "Packet_Login_Send == NULL!!!", "Error", MB_OK);
-			else
-				InlineHook((void*)find, Hook_Packet_Login_Send, (void*&)g_pfnPacket_Login_Send);
-		}
 	}
+
+	//printf("EngineBase: %p\n", g_dwEngineBase);
+
+	auto addr = (void*)FindPattern("\x55\x8B\xEC\x81\xEC\x00\x00\x00\x00\xA1\x00\x00\x00\x00\x33\xC5\x89\x45\x00\x56\x8B\x75\x00\x8D\x45\x00\x50\x6A\x00\xFF\x75\x00\x8D\x85\x00\x00\x00\x00\x68\x00\x00\x00\x00\x50\xE8\x00\x00\x00\x00\x8B\x10\xFF\x70\x00\x83\xCA\x00\x52\xFF\x15\x00\x00\x00\x00\x83\xC4", "xxxxx????x????xxxx?xxx?xx?xx?xx?xx????x????xx????xxxx?xx?xxx????xx", g_dwEngineBase, g_dwEngineBase + g_dwEngineSize, NULL);
+	//printf("%p\n", addr);
+	if (!addr)
+		MessageBox(NULL, "LogToErrorLog == NULL!!!", "Error", MB_OK);
+	else
+		InlineHook(addr, Hook_LogToErrorLog, (void*&)g_pfnLogToErrorLog);
 
 	g_pEngine = (cl_enginefunc_t*)(PVOID) * (PDWORD)(FindPush(g_dwEngineBase, g_dwEngineBase + g_dwEngineSize, (PCHAR)("ScreenFade")) + 0x0D);
 	if (!g_pEngine)
 		MessageBox(NULL, "g_pEngine == NULL!!!", "Error", MB_OK);
-	else
-		// hook Pbuf_AddText to allow any cvar or cmd input from console
-		g_pEngine->Pbuf_AddText = Pbuf_AddText;
 
-	if (g_bDumpAll || g_bDumpMetadata || g_bWriteMetadata || g_bIgnoreMetadata)
+	// hook Pbuf_AddText to allow any cvar or cmd input from console
+	g_pEngine->Pbuf_AddText = Pbuf_AddText;
+
+	g_pPacket_Metadata_Parse = (void*)FindPattern(PACKET_METADATA_PARSE_SIG_CSNZ, PACKET_METADATA_PARSE_MASK_CSNZ, g_dwEngineBase, g_dwEngineBase + g_dwEngineSize, NULL);
+	if (g_bDumpMetadata || g_bWriteMetadata)
 	{
-		find = FindPattern(PACKET_METADATA_PARSE_SIG_CSNZ, PACKET_METADATA_PARSE_MASK_CSNZ, g_dwEngineBase, g_dwEngineBase + g_dwEngineSize, NULL);
-		if (!find)
-			MessageBox(NULL, "Packet_Metadata_Parse == NULL!!!", "Error", MB_OK);
+		if (!g_pPacket_Metadata_Parse)
+			MessageBox(NULL, "g_pPacket_Metadata_Parse == NULL!!!", "Error", MB_OK);
+
+		InlineHook(g_pPacket_Metadata_Parse, Packet_Metadata_Parse, (void*&)g_pfnPacket_Metadata_Parse);
+
+		printf("0x%p\n", g_pPacket_Metadata_Parse);
+	}
+
+	if (g_bDumpQuest)
+	{
+		g_pPacket_Quest_Parse = (void*)FindPattern(PACKET_QUEST_PARSE_SIG_CSNZ, PACKET_QUEST_PARSE_MASK_CSNZ, g_dwEngineBase, g_dwEngineBase + g_dwEngineSize, NULL);
+		if (!g_pPacket_Quest_Parse)
+			MessageBox(NULL, "g_pPacket_Quest_Parse == NULL!!!", "Error", MB_OK);
 		else
-		{
-			InlineHook((void*)find, Hook_Packet_Metadata_Parse, (void*&)g_pfnPacket_Metadata_Parse);
-			if (g_pEngine)
-				g_pEngine->pfnAddCommand("metadata_requestall", Metadata_RequestAll);
-		}
+			InlineHook(g_pPacket_Quest_Parse, Packet_Quest_Parse, (void*&)g_pfnPacket_Quest_Parse);
+	}
+
+	if (g_bDumpUMsg)
+	{
+		g_pPacket_UMsg_Parse = (void*)FindPattern(PACKET_UMSG_PARSE_SIG_CSNZ, PACKET_UMSG_PARSE_MASK_CSNZ, g_dwEngineBase, g_dwEngineBase + g_dwEngineSize, NULL);
+		if (!g_pPacket_UMsg_Parse)
+			MessageBox(NULL, "g_pPacket_UMsg_Parse == NULL!!!", "Error", MB_OK);
+
+		InlineHook(g_pPacket_UMsg_Parse, Packet_UMsg_Parse, (void*&)g_pfnPacket_UMsg_Parse);
+
+		printf("0x%p\n", g_pPacket_UMsg_Parse);
+	}
+
+	if (g_bDumpAlarm)
+	{
+		g_pPacket_Alarm_Parse = (void*)FindPattern(PACKET_ALARM_PARSE_SIG_CSNZ, PACKET_ALARM_PARSE_MASK_CSNZ, g_dwEngineBase, g_dwEngineBase + g_dwEngineSize, NULL);
+		if (!g_pPacket_Alarm_Parse)
+			MessageBox(NULL, "g_pPacket_Alarm_Parse == NULL!!!", "Error", MB_OK);
+
+		InlineHook(g_pPacket_Alarm_Parse, Packet_Alarm_Parse, (void*&)g_pfnPacket_Alarm_Parse);
+
+		printf("0x%p\n", g_pPacket_Alarm_Parse);
+	}
+
+	if (g_bDumpItem)
+	{
+		g_pPacket_Item_Parse = (void*)FindPattern(PACKET_ITEM_PARSE_SIG_CSNZ, PACKET_ITEM_PARSE_MASK_CSNZ, g_dwEngineBase, g_dwEngineBase + g_dwEngineSize, NULL);
+		if (!g_pPacket_Item_Parse)
+			MessageBox(NULL, "g_pPacket_Item_Parse == NULL!!!", "Error", MB_OK);
+
+		InlineHook(g_pPacket_Item_Parse, Packet_Item_Parse, (void*&)g_pfnPacket_Item_Parse);
+
+		printf("0x%p\n", g_pPacket_Item_Parse);
+	}
+
+	if (g_bDumpCrypt)
+	{
+		g_pPacket_Crypt_Parse = (void*)FindPattern(PACKET_CRYPT_SIG, PACKET_CRYPT_MASK, g_dwEngineBase, g_dwEngineBase + g_dwEngineSize, NULL);
+		if (!g_pPacket_Crypt_Parse)
+			MessageBox(NULL, "g_pPacket_Crypt_Parse == NULL!!!", "Error", MB_OK);
+
+		InlineHook(g_pPacket_Crypt_Parse, Packet_Crypt_Parse, (void*&)g_pfnPacket_Crypt_Parse);
+
+		printf("0x%p\n", g_pPacket_Crypt_Parse);
 	}
 
 	if (g_bDumpAll)
 	{
-		find = FindPattern(READPACKET_SIG_CSNZ, READPACKET_MASK_CSNZ, g_dwEngineBase, g_dwEngineBase + g_dwEngineSize, NULL);
-		if (!find)
-			MessageBox(NULL, "ReadPacket == NULL!!!", "Error", MB_OK);
-		else
-			InlineHookFromCallOpcode((void*)find, Hook_ReadPacket, (void*&)g_pfnReadPacket, dummy);
+		DWORD dwCallAddr = FindPush(g_dwEngineBase, g_dwEngineBase + g_dwEngineSize, (PCHAR)("SocketManager - Initial ReadPacket() failed. (return = %d)\n")) - 0x10;
+		if (dwCallAddr == -0x10)
+			MessageBox(NULL, "dwCallAddr == 0!!!", "Error", MB_OK);
+
+		InlineHookFromCallOpcode((void*)dwCallAddr, Socket_Read, (void*&)g_pfnSocket_Read, dummy);
 	}
 
-	// Fix "error TS%d,%d (GetLastError 0x%x)"
-	find = FindPattern(GETPECOMPILATIONTIME_SIG_CSNZ, GETPECOMPILATIONTIME_MASK_CSNZ, g_dwEngineBase, g_dwEngineBase + g_dwEngineSize, NULL);
-	if (!find)
+	DWORD timestampFunc = FindPattern(GETPECOMPILATIONTIME_SIG_CSNZ, GETPECOMPILATIONTIME_MASK_CSNZ, g_dwEngineBase, g_dwEngineBase + g_dwEngineSize, NULL);
+	if (timestampFunc)
+		InlineHook((void*)timestampFunc, Hook_GetPECompilationTime, (void*&)g_pfnGetPECompilationTime);
+	else
 		MessageBox(NULL, "GetPECompilationTime == NULL!!!", "Error", MB_OK);
-	else
-		InlineHook((void*)find, Hook_GetPECompilationTime, (void*&)g_pfnGetPECompilationTime);
 
-	// patch 100 fps limit
-	find = FindPattern(FPS_PATCH_SIG_CSNZ, FPS_PATCH_MASK_CSNZ, g_dwEngineBase, g_dwEngineBase + g_dwEngineSize, NULL);
-	if (!find)
-		MessageBox(NULL, "100Fps_Patch == NULL!!!", "Error", MB_OK);
-	else
+	if (!g_bUseOriginalServer)
 	{
-		BYTE patch[] = { 0x90, 0x90, 0x90, 0x90, 0x90, 0x90, 0x90, 0x90, 0x90, 0x90, 0x90, 0x90, 0x90, 0x90, 0x90, 0x90, 0x90, 0x90, 0x90, 0x90, 0x90, 0x90, 0x90, 0x90, 0x90 };
-		WriteMemory((void*)find, (BYTE*)patch, sizeof(patch));
-	}
-
-	if (!g_bUseOriginalServer && !g_bUseSSL)
-	{
-		// hook GetSSLProtocolName to make Crypt work
-		find = FindPattern(GETSSLPROTOCOLNAME_SIG_CSNZ, GETSSLPROTOCOLNAME_MASK_CSNZ, g_dwEngineBase, g_dwEngineBase + g_dwEngineSize, NULL);
-		if (!find)
-			MessageBox(NULL, "GetSSLProtocolName == NULL!!!", "Error", MB_OK);
-		else
-			InlineHookFromCallOpcode((void*)find, Hook_GetSSLProtocolName, dummy, dummy);
-
-		// hook SocketConstructor to create ctx objects
-		find = FindPattern(SOCKETCONSTRUCTOR_SIG_CSNZ, SOCKETCONSTRUCTOR_MASK_CSNZ, g_dwEngineBase, g_dwEngineBase + g_dwEngineSize, NULL);
-		if (!find)
-			MessageBox(NULL, "SocketConstructor == NULL!!!", "Error", MB_OK);
-		else
-			InlineHookFromCallOpcode((void*)find, Hook_SocketConstructor, (void*&)g_pfnSocketConstructor, dummy);
-
-		find = FindPattern(EVP_CIPHER_CTX_NEW_SIG_CSNZ, EVP_CIPHER_CTX_NEW_MASK_CSNZ, g_dwEngineBase, g_dwEngineBase + g_dwEngineSize, NULL);
-		if (!find)
-			MessageBox(NULL, "EVP_CIPHER_CTX_new == NULL!!!", "Error", MB_OK);
-		else
+		// hook GetCryptoProtocolName func to make Crypt work
+		DWORD dwCallAddr = FindPush(g_dwEngineBase, g_dwEngineBase + g_dwEngineSize, (PCHAR)("CRYPT_ERROR"));
+		if (dwCallAddr)
 		{
-			DWORD dwCreateCtxAddr = find + 1;
-			g_pfnEVP_CIPHER_CTX_new = (tEVP_CIPHER_CTX_new)(dwCreateCtxAddr + 4 + *(DWORD*)dwCreateCtxAddr);
+			dwCallAddr -= 0x117;
+
+			InlineHookFromCallOpcode((void*)dwCallAddr, GetCryptoProtocolName, (void*&)g_pfnGetCryptoProtocolName, dummy);
+		}
+
+		// hook socket constructor to create ctx objects even if we don't use ssl
+		if (!g_bUseSSL)
+		{
+			dwCallAddr = FindPush(g_dwEngineBase, g_dwEngineBase + g_dwEngineSize, (PCHAR)("new socket()>>"));
+			if (dwCallAddr)
+			{
+				dwCallAddr += 0x62;
+
+				InlineHookFromCallOpcode((void*)dwCallAddr, SocketConstructor, (void*&)g_pfnSocketConstructor, dummy);
+
+				dwCallAddr = FindPush(g_dwEngineBase, g_dwEngineBase + g_dwEngineSize, (PCHAR)("SSL: Failed to load Client's Private Key"), 2);
+				if (dwCallAddr)
+				{
+					dwCallAddr -= 0x1F;
+
+					DWORD dwCreateCtxAddr = dwCallAddr + 1;
+					g_pfnEVP_CIPHER_CTX_new = (tEVP_CIPHER_CTX_new)(dwCreateCtxAddr + 4 + *(DWORD*)dwCreateCtxAddr);
+				}
+
+				// mega unreliable solution...
+				/*DWORD callInitSSLAddr = (DWORD)dummy + 0x142 + 1;
+				DWORD initSSLAddr = callInitSSLAddr + 4 + *(DWORD*)callInitSSLAddr;
+
+				DWORD createCtxCallAddr = initSSLAddr + 0x15E + 1;
+				g_pfnEVP_CIPHER_CTX_new = (tEVP_CIPHER_CTX_new)(createCtxCallAddr + 4 + *(DWORD*)createCtxCallAddr);*/
+			}
 		}
 	}
 
